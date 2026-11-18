@@ -28,12 +28,13 @@ function renderSubs() {
   const box = $('subs'); box.textContent = '';
   for (const s of subs) {
     const d = document.createElement('div'); d.className = 's' + (s.id === cur ? ' on' : '');
-    d.innerHTML = '<div><b></b><i></i></div><span class="dot"></span>';
-    d.querySelector('b').textContent = s.name;
+    d.innerHTML = '<div class="sl"><span class="av"></span><div><b></b><i></i></div></div><span class="dot"></span>';
+    const av = d.querySelector('.av');
+    if (s.avUrl) { const im = document.createElement('img'); im.className = 'av'; im.src = s.avUrl; im.onerror = () => im.replaceWith(av); av.textContent = (s.name || '?')[0].toUpperCase(); av.replaceWith(im); d.querySelector('.sl').prepend(im); }
+    else av.textContent = (s.name || '?')[0].toUpperCase();
+    d.querySelector('b').textContent = s.title || s.name;
     const p = prog[s.id];
-    d.querySelector('i').textContent = running.has(s.id)
-      ? `Syncing… ${p ? p.downloaded : 0} new`
-      : `${s.host} · ${s.count} files · ${ago(s.last)}`;
+    d.querySelector('i').textContent = running.has(s.id) ? `Syncing… ${p ? p.downloaded : 0} new` : `${s.host} · ${s.count} files · ${ago(s.last)}`;
     d.querySelector('.dot').classList.toggle('run', running.has(s.id));
     d.onclick = () => select(s.id);
     box.appendChild(d);
@@ -44,8 +45,8 @@ const soon = () => { if (!rT) rT = setTimeout(() => { rT = null; renderSubs(); }
 // ---- grid ----
 function addThumb(it, kind) {
   const d = document.createElement('div'); d.className = 'th'; d.title = it.label;
-  if (it.src && kind === 'file' && it.video) {
-    const v = document.createElement('video'); v.src = it.src + '#t=0.1'; v.muted = true; v.preload = 'metadata'; d.appendChild(v);
+  if (it.src && it.video && !it.thumbOnly && (kind === 'file' || kind === 'preview')) {
+    const v = document.createElement('video'); v.src = it.src + '#t=0.1'; v.muted = true; v.preload = 'metadata'; if (kind === 'preview') v.referrerPolicy = 'no-referrer'; v.onerror = () => { v.remove(); d.append('🎬'); }; d.appendChild(v);
   } else if (it.src) {
     const img = document.createElement('img'); img.referrerPolicy = 'no-referrer'; img.loading = 'lazy'; img.src = it.src;
     img.onerror = () => { img.remove(); d.append(it.video ? '🎬' : '🖼️'); }; d.appendChild(img);
@@ -58,6 +59,15 @@ function thumbs(items, kind) {
   $('grid').textContent = ''; $('empty').hidden = items.length > 0;
   items.forEach(it => addThumb(it, kind));
 }
+function card(c) {
+  if (!c || (!c.title && !c.image && !c.desc && !c.handle)) { $('pcard').hidden = true; return; }
+  $('pcard').hidden = false;
+  const im = $('pav'); im.hidden = !c.image; im.onerror = () => { im.hidden = true; };
+  if (c.image) { im.referrerPolicy = 'no-referrer'; im.src = c.image; }
+  $('pname').textContent = c.title || c.handle || ''; $('phandle').textContent = c.title ? (c.handle || '') : '';
+  $('pbio').textContent = c.desc || '';
+}
+const subCard = s => card({ image: s.avUrl, title: s.title || s.name, handle: '@' + s.name, desc: s.bio });
 function header(title, sub, own) {
   $('title').textContent = title; $('sub').textContent = sub || '';
   for (const id of ['check', 'folder', 'remove']) $(id).hidden = !own;
@@ -75,38 +85,65 @@ async function refreshGallery(force) {
 async function select(id) {
   cur = id; renderSubs();
   const s = subs.find(x => x.id === id); if (!s) return;
-  header(s.name, s.url, true);
+  header(s.title || s.name, s.url, true); subCard(s);
   if (running.has(id)) paintProg(prog[id] || { downloaded: 0, skipped: 0 }); else if (!previewing) hideProg();
   await refreshGallery(true);
 }
 setInterval(() => { if (cur && running.has(cur)) refreshGallery(false); }, 3000);
 
+// ---- target: site dropdown + username or link ----
+const SITE_URLS = {
+  instagram: u => `https://www.instagram.com/${u}/`, x: u => `https://x.com/${u}/media`, facebook: u => `https://www.facebook.com/${u}/photos`,
+  threads: u => `https://www.threads.net/@${u}`, tiktok: u => `https://www.tiktok.com/@${u}`, reddit: u => `https://www.reddit.com/user/${u}/`,
+  pinterest: u => `https://www.pinterest.com/${u}/`, youtube: u => `https://www.youtube.com/@${u}/videos`
+};
+const HOST_SITE = { 'instagram.com': 'instagram', 'x.com': 'x', 'twitter.com': 'x', 'facebook.com': 'facebook', 'threads.net': 'threads', 'threads.com': 'threads', 'tiktok.com': 'tiktok', 'reddit.com': 'reddit', 'pinterest.com': 'pinterest', 'youtube.com': 'youtube' };
+function target() {
+  let raw = $('url').value.trim(); if (!raw) return null;
+  if (/^[\w-]+(\.[\w-]+)+\//.test(raw) && !/^https?:/i.test(raw)) raw = 'https://' + raw;
+  if (/^https?:\/\//i.test(raw)) return { url: raw, name: null };
+  const site = $('site').value;
+  if (site === 'other') return { error: 'For other sites, paste the full profile link.' };
+  const u = raw.replace(/^@/, '').replace(/\/+$/, '');
+  if (!/^[\w.\-]+$/.test(u)) return { error: 'Enter just a username (letters, numbers, . _ -) or a full profile link.' };
+  return { url: SITE_URLS[site](u), name: u };
+}
+$('url').addEventListener('input', () => {   // pasting a link picks the right site automatically
+  const v = $('url').value.trim(); if (!/^(https?:\/\/)?[\w-]+(\.[\w-]+)+\//i.test(v)) return;
+  try { const h = new URL(/^https?:/i.test(v) ? v : 'https://' + v).hostname.replace(/^www\./, '').replace(/^(m|mobile)\./, '');
+    $('site').value = HOST_SITE[h] || 'other'; } catch {}
+});
+
 // ---- preview ----
 $('prev').onclick = async () => {
-  const url = $('url').value.trim(); if (!url || previewing) return;
-  cur = null; renderSubs(); previewing = true; pvCount = 0;
-  header('Previewing…', url, false); thumbs([], 'preview'); $('empty').hidden = true;
+  const t = target(); if (!t || previewing) return;
+  if (t.error) return line(t.error, 'err');
+  cur = null; renderSubs(); previewing = true; pvCount = 0; card(null);
+  header('Previewing…', t.url, false); thumbs([], 'preview'); $('empty').hidden = true;
   showProg('Looking up profile… this can take a minute on Instagram or X', null);
-  const r = await api.preview({ url });
+  const r = await api.preview({ url: t.url });
   previewing = false; hideProg(); $('stop').hidden = !running.size;
   if (r.cancelled) return header('Preview cancelled', '', false);
   if (!r.ok) {
     header('Preview failed', '', false); $('empty').textContent = r.error; $('empty').hidden = pvCount > 0;
     return line('Preview: ' + r.error, 'err');
   }
-  header(r.profile || 'Preview', `Preview: ${r.count} item(s). Press Add to subscribe.`, false);
+  header(r.profile || 'Preview', r.warn ? `Only ${r.count} item(s) found. ⚠ ${r.warn}` : `Preview: ${r.count} item(s). Press Add to subscribe.`, false);
+  if (r.warn) line('Preview warning: ' + r.warn, 'err');
 };
 api.onPreviewItem(it => {
   if (!previewing) return;
   addThumb(it, 'preview'); pvCount++; $('empty').hidden = true;
   showProg(`Looking up profile… found ${pvCount} item(s)`, null);
 });
+api.onPreviewProfile(c => { if (previewing || !cur) card(c); });
 $('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('prev').click(); });
 
 // ---- actions ----
 $('add').onclick = async () => {
-  const url = $('url').value.trim(); if (!url) return;
-  const r = await api.addSub({ url });
+  const t = target(); if (!t) return;
+  if (t.error) return line(t.error, 'err');
+  const r = await api.addSub({ url: t.url, name: t.name });
   if (!r.ok) return line(r.error, 'err');
   $('url').value = ''; subs = (await api.state()).subs; select(r.sub.id);
 };
@@ -115,7 +152,7 @@ $('folder').onclick = () => api.openFolder(cur);
 $('stop').onclick = () => api.cancel();
 $('remove').onclick = async () => {
   if (!confirm('Remove this subscription? Downloaded files stay on disk.')) return;
-  await api.removeSub(cur); cur = null; header('Welcome', '', false); thumbs([], 'x'); hideProg(); $('empty').textContent = 'Subscription removed.';
+  await api.removeSub(cur); cur = null; header('Welcome', '', false); thumbs([], 'x'); hideProg(); card(null); $('empty').textContent = 'Subscription removed.';
 };
 
 // ---- login / settings ----
@@ -127,10 +164,20 @@ async function showWho() {
 }
 $('login').onclick = () => { $('dLogin').showModal(); showWho(); };
 $('loginClose').onclick = () => $('dLogin').close();
-document.querySelectorAll('.sites button').forEach(b => b.onclick = async () => {
-  const r = await api.login({ url: b.dataset.u, site: b.dataset.n });
-  if (r.ok && r.already) line(`Already signed in to ${b.dataset.n}. Sign out in Settings to switch accounts.`, 'info');
-});
+async function doLogin(b, force) {
+  const r = await api.login({ url: b.dataset.u, site: b.dataset.n, force });
+  if (!r.ok) return line(r.error, 'err');
+  if (r.already && confirm(`You are already signed in to ${b.dataset.l}.\nSign in again? This replaces the current session.`)) doLogin(b, true);
+}
+document.querySelectorAll('.sites button').forEach(b => b.onclick = () => doLogin(b, false));
+$('xSave').onclick = async () => {
+  const r = await api.setXCookies({ authToken: $('xAuth').value, ct0: $('xCt0').value });
+  if (!r.ok) return line(r.error, 'err'); $('xAuth').value = ''; $('xCt0').value = '';
+};
+$('impCk').onclick = async () => {
+  const r = await api.importCookies(); if (r.cancelled) return;
+  line(r.ok ? `Imported ${r.count} cookies.` : 'No usable cookies found in that file.', r.ok ? 'ok' : 'err');
+};
 $('otherGo').onclick = async () => { const r = await api.login({ url: $('otherU').value.trim(), site: null }); if (!r.ok) line(r.error, 'err'); };
 $('set').onclick = async () => { const s = await api.state(); $('outDir').value = s.settings.outDir; $('interval').value = String(s.settings.interval); $('dSet').showModal(); };
 $('setClose').onclick = () => $('dSet').close();
@@ -140,7 +187,7 @@ $('logout').onclick = async () => { await api.logout(); line('Signed out of all 
 
 // ---- events ----
 api.onLog(m => line(m.text, m.type));
-api.onSubs(s => { subs = s; renderSubs(); });
+api.onSubs(s => { subs = s; renderSubs(); const c = subs.find(x => x.id === cur); if (c) subCard(c); });
 api.onProgress(p => { prog[p.id] = p; if (p.id === cur && running.has(p.id)) paintProg(p); soon(); });
 api.onState(m => {
   m.running ? running.add(m.id) : running.delete(m.id);

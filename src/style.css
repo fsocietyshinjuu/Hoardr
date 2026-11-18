@@ -39,3 +39,11 @@ dialog::backdrop{background:rgba(0,0,0,.6)}h3{margin:0 0 6px}label{display:block
 @keyframes slide{0%{transform:translateX(-110%)}100%{transform:translateX(370%)}}
 #progText{margin-top:8px;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{color:var(--mut);font-size:12px;text-align:center}
+
+.add select{margin-bottom:0}
+.sl{display:flex;gap:10px;align-items:center;min-width:0}.sl>div{min-width:0}.sl b,.sl i{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none;background:var(--line);display:grid;place-items:center;font-weight:700;color:var(--mut)}
+#pcard{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+#pav{width:76px;height:76px;border-radius:50%;object-fit:cover;flex:none;background:var(--line)}
+#pname{font-size:17px}#pbio{margin:6px 0 0;color:var(--mut);font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+details.alt{margin-top:14px;color:var(--mut)}details.alt input{margin-bottom:4px}

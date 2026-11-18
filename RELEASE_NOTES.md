@@ -1,18 +1,17 @@
-## Hoardr 1.1.0
+## Hoardr 1.2.0
 
 ### What's new
-- 🎨 **New app icon.**
-- 📊 **Live progress**: a progress bar, new-file counter and current filename while syncing. The gallery fills up as files arrive and the sidebar shows "Syncing… N new".
-- 👀 **Streaming preview**: thumbnails appear one by one as they are found, with a Stop button and clear errors.
-- 🔑 **Smarter login**: Hoardr detects when you are signed in, saves the session and closes the popup by itself. A ✓ marks each signed-in site.
+- ⌨️ **Add by username**: choose the site from a dropdown and type a username, or paste a full link. The site is detected automatically.
+- 👤 **Profile cards**: profile picture, name and bio in the preview and in the sidebar.
+- 🔔 **Tray mode**: Hoardr opens maximized. Closing the window keeps it syncing in the system tray and shows a notification. Use the tray menu to reopen or quit.
+- 🔑 **Better sign-in**: the login window closes right after you sign in, you can re-login to a site, and there is a cookie fallback for sites that block in-app sign-in.
+- 🎞️ Video thumbnails, and preview problems are now reported.
 
-### Fixed
-- Logins now stay saved after the popup closes and after restarting the app.
-- Preview no longer fails silently.
+### Signing in to X
+X often refuses sign-in inside apps ("An unexpected error occurred"). Use **🔑 Log in → Can't sign in? Use cookies instead** and paste your `auth_token` (and `ct0`) from your browser's cookies for x.com.
 
 ### Updating
-- Installed from the **Setup** `.exe` or the **AppImage**? Hoardr will offer this update by itself.
-- Portable `.exe`, `.deb` and macOS builds: download the new version from below.
+Installed from the **Setup** `.exe` or the **AppImage**? Hoardr offers this update by itself. Other builds: download below.
 
 ### Downloads
 | Platform | File |

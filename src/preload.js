@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('api', {
   sync: inv('sync'), cancel: inv('cancel'), preview: inv('preview'),
   checkUpdate: inv('check-update'), installUpdate: inv('install-update'), openRelease: inv('open-release'),
   onUpdate: on('update'),
+  importCookies: inv('import-cookies'), setXCookies: inv('set-x-cookies'), onPreviewProfile: on('preview-profile'),
   onLog: on('log'), onProgress: on('progress'), onPreviewItem: on('preview-item'), onSubs: on('subs'), onState: on('state'), onLogin: on('login-done')
 });

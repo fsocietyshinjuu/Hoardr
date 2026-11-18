@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session, net, Tray, Menu, Notification, nativeImage } = require('electron');
 const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 const path = require('path');
@@ -14,6 +14,7 @@ const PREVIEW_COUNT = 24;
 const ICON = path.join(__dirname, '..', 'build', 'icon.png');
 
 let win, child, pchild, timer, running = false;
+let tray = null, trayOk = false, quitting = false;
 let queue = [], subs = [], settings = {};
 
 // ---------- storage ----------
@@ -21,7 +22,8 @@ const jp = f => path.join(app.getPath('userData'), f);
 const readJ = (f, d) => { try { return JSON.parse(fs.readFileSync(jp(f), 'utf8')); } catch { return d; } };
 const writeJ = (f, v) => fs.writeFileSync(jp(f), JSON.stringify(v, null, 2));
 const send = (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data);
-const saveSubs = () => { writeJ('subs.json', subs); send('subs', subs); };
+const pub = () => subs.map(s => ({ ...s, avUrl: s.avatar && fs.existsSync(s.avatar) ? pathToFileURL(s.avatar).href + '?v=' + (s.avT || 0) : null }));
+const saveSubs = () => { writeJ('subs.json', subs); send('subs', pub()); };
 const log = (id, type, text) => send('log', { id, type, text });
 
 // ---------- helpers ----------
@@ -49,6 +51,7 @@ function media(folder) {
   (function walk(d, depth) {
     let ents; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
     for (const e of ents) {
+      if (e.name.startsWith('.')) continue;
       const p = path.join(d, e.name);
       if (e.isDirectory()) { if (depth < 2) walk(p, depth + 1); continue; }
       const ext = path.extname(e.name).slice(1).toLowerCase();
@@ -73,17 +76,39 @@ async function exportCookies() {
 }
 
 // ---------- window ----------
+function showWin() { if (!win) return; if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
 function createWindow() {
   win = new BrowserWindow({
-    icon: ICON, width: 1180, height: 780, minWidth: 900, minHeight: 600, backgroundColor: '#0f1117',
+    icon: ICON, width: 1180, height: 780, minWidth: 900, minHeight: 600, show: false, backgroundColor: '#0f1117',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   win.setMenuBarVisibility(false);
+  win.once('ready-to-show', () => { win.maximize(); win.show(); });
+  win.on('close', e => {
+    if (quitting || !trayOk) return;
+    e.preventDefault(); win.hide();
+    if (Notification.isSupported())
+      new Notification({ title: 'Hoardr is still running', body: 'It keeps syncing in the system tray. Click the tray icon to reopen, or right-click it to quit.', icon: ICON }).show();
+  });
   win.loadFile(path.join(__dirname, 'index.html'));
+}
+function createTray() {
+  try {
+    tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 32, height: 32 }));
+    tray.setToolTip('Hoardr');
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: 'Open Hoardr', click: showWin },
+      { label: 'Check all profiles now', click: () => enqueue('all') },
+      { type: 'separator' },
+      { label: 'Quit Hoardr', click: () => { quitting = true; app.quit(); } }
+    ]));
+    tray.on('click', showWin);
+    trayOk = true;
+  } catch { trayOk = false; }
 }
 
 // ---------- state / settings ----------
-ipcMain.handle('state', () => ({ subs, settings, version: app.getVersion() }));
+ipcMain.handle('state', () => ({ subs: pub(), settings, version: app.getVersion() }));
 ipcMain.handle('pick-dir', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled) return null;
@@ -106,34 +131,39 @@ const SITES = [
 ];
 const ses = () => session.fromPartition(PART);
 const dom = c => c.domain.replace(/^\./, '');
+const inHosts = (c, hosts) => hosts.some(h => dom(c) === h || dom(c).endsWith('.' + h));
 
 async function loginStatus() {
   const cs = await ses().cookies.get({});
-  return SITES.map(s => ({
-    name: s.name,
-    ok: s.cookies.every(n => cs.some(c => c.name === n && c.value && c.value !== '0' &&
-      s.hosts.some(h => dom(c) === h || dom(c).endsWith('.' + h))))
-  }));
+  return SITES.map(s => ({ name: s.name, ok: s.cookies.every(n => cs.some(c => c.name === n && c.value && c.value !== '0' && inHosts(c, s.hosts))) }));
 }
-// Session cookies would vanish when the app closes, so give them an expiry and flush to disk
+const ckUrl = c => `http${c.secure ? 's' : ''}://${dom(c)}${c.path || '/'}`;
 async function persistCookies() {
   const cs = await ses().cookies.get({});
   const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 90;
   for (const c of cs) {
     if (c.expirationDate || c.name.startsWith('__Host-')) continue;
-    try {
-      await ses().cookies.set({ url: `http${c.secure ? 's' : ''}://${dom(c)}${c.path || '/'}`, name: c.name, value: c.value,
-        domain: c.domain, path: c.path || '/', secure: c.secure, httpOnly: c.httpOnly, expirationDate: exp });
-    } catch {}
+    try { await ses().cookies.set({ url: ckUrl(c), name: c.name, value: c.value, domain: c.domain, path: c.path || '/', secure: c.secure, httpOnly: c.httpOnly, expirationDate: exp }); } catch {}
   }
   try { await ses().cookies.flushStore(); } catch {}
 }
+async function clearSite(def) {
+  for (const c of await ses().cookies.get({})) if (inHosts(c, def.hosts)) { try { await ses().cookies.remove(ckUrl(c), c.name); } catch {} }
+}
+async function refreshSession(site) {
+  await persistCookies(); await exportCookies();
+  send('login-done', { status: await loginStatus(), site });
+}
 
-ipcMain.handle('login', async (_e, { url, site }) => {
+ipcMain.handle('login', async (_e, { url, site, force }) => {
   const p = plan(url);
   if (p.error) return { ok: false, error: p.error };
   const def = SITES.find(x => x.name === site) || SITES.find(x => matches(p.host, x.hosts));
-  const before = def ? (await loginStatus()).find(x => x.name === def.name).ok : false;
+  if (def) {
+    const was = (await loginStatus()).find(x => x.name === def.name).ok;
+    if (was && !force) return { ok: true, already: true };
+    if (force) await clearSite(def);
+  }
   const lw = new BrowserWindow({
     icon: ICON, width: 540, height: 800, parent: win, title: `Log in${def ? ' to ' + def.name : ''}`,
     webPreferences: { partition: PART, contextIsolation: true, nodeIntegration: false, sandbox: true }
@@ -144,26 +174,26 @@ ipcMain.handle('login', async (_e, { url, site }) => {
   lw.webContents.setWindowOpenHandler(() => ({ action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: PART } } }));
   lw.loadURL(url);
 
-  let done = false, poll;
-  const finish = async () => {
-    await persistCookies(); await exportCookies();
-    send('login-done', { status: await loginStatus(), site: def && def.name });
-  };
-  // Auto-detect a successful login, save it and close the window
-  if (def && !before) {
-    poll = setInterval(async () => {
-      if (done || lw.isDestroyed()) return;
+  let done = false, busy = false, poll;
+  const check = async () => {
+    if (!def || done || busy || lw.isDestroyed()) return;
+    busy = true;
+    try {
       const st = (await loginStatus()).find(x => x.name === def.name);
       if (st && st.ok) {
         done = true; clearInterval(poll);
-        lw.setTitle(`✓ Signed in to ${def.name}. Closing…`);
-        await finish();
-        setTimeout(() => { if (!lw.isDestroyed()) lw.close(); }, 1200);
+        if (!lw.isDestroyed()) lw.setTitle(`✓ Signed in to ${def.name}. Closing…`);
+        await refreshSession(def.name);
+        setTimeout(() => { if (!lw.isDestroyed()) lw.close(); }, 700);
       }
-    }, 1500);
+    } finally { busy = false; }
+  };
+  if (def) {
+    poll = setInterval(check, 1000);
+    lw.webContents.on('did-navigate', check); lw.webContents.on('did-navigate-in-page', check);
   }
-  lw.on('closed', async () => { clearInterval(poll); if (!done) { done = true; await finish(); } });
-  return { ok: true, already: before };
+  lw.on('closed', async () => { clearInterval(poll); if (!done) { done = true; await refreshSession(def ? def.name : null); } });
+  return { ok: true };
 });
 ipcMain.handle('logins', loginStatus);
 ipcMain.handle('logout', async () => {
@@ -172,6 +202,79 @@ ipcMain.handle('logout', async () => {
   send('login-done', { status: await loginStatus(), site: null });
   return true;
 });
+
+// Fallbacks when a site refuses to log in inside an app window
+function parseNetscape(txt) {
+  const out = [];
+  for (let l of txt.split(/\r?\n/)) {
+    let httpOnly = false;
+    if (l.startsWith('#HttpOnly_')) { httpOnly = true; l = l.slice(10); } else if (!l.trim() || l.startsWith('#')) continue;
+    const f = l.split('\t'); if (f.length < 7) continue;
+    out.push({ domain: f[0], path: f[2], secure: f[3] === 'TRUE', exp: Number(f[4]) || 0, name: f[5], value: f.slice(6).join('\t'), httpOnly });
+  }
+  return out;
+}
+async function putCookie(c) {
+  const exp = c.exp > Date.now() / 1000 ? c.exp : Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 90;
+  try { await ses().cookies.set({ url: ckUrl(c), name: c.name, value: c.value, domain: c.domain, path: c.path || '/', secure: c.secure, httpOnly: c.httpOnly, expirationDate: exp }); return true; } catch { return false; }
+}
+ipcMain.handle('import-cookies', async () => {
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Cookies (Netscape)', extensions: ['txt'] }] });
+  if (r.canceled) return { ok: false, cancelled: true };
+  let n = 0;
+  for (const c of parseNetscape(fs.readFileSync(r.filePaths[0], 'utf8'))) if (await putCookie(c)) n++;
+  await refreshSession(null);
+  return { ok: n > 0, count: n };
+});
+ipcMain.handle('set-x-cookies', async (_e, { authToken, ct0 }) => {
+  const clean = v => String(v || '').trim().replace(/^["']|["']$/g, '');
+  const a = clean(authToken), c = clean(ct0);
+  if (!a || /\s/.test(a)) return { ok: false, error: 'Paste the auth_token value.' };
+  for (const d of ['x.com', 'twitter.com']) {
+    await putCookie({ domain: '.' + d, path: '/', secure: true, httpOnly: true, exp: 0, name: 'auth_token', value: a });
+    if (c) await putCookie({ domain: '.' + d, path: '/', secure: true, httpOnly: false, exp: 0, name: 'ct0', value: c });
+  }
+  await refreshSession('X');
+  return { ok: true };
+});
+
+// ---------- profile info (name, bio, picture) from the page's public preview tags ----------
+const decodeHtml = t => String(t || '').replace(/&#x([0-9a-f]+);/gi, (_m, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_m, d) => String.fromCodePoint(+d)).replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const cleanTitle = t => (t || '').split(' • ')[0].replace(/\s*[\/|]\s*(X|Twitter|Facebook|TikTok|Reddit).*$/i, '').trim();
+async function profileInfo(url) {
+  const host = hostOf(url) || '';
+  const uas = matches(host, ['x.com', 'twitter.com'])
+    ? ['Twitterbot/1.0', 'facebookexternalhit/1.1'] : ['facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)', 'Twitterbot/1.0'];
+  for (const ua of uas) {
+    try {
+      const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 10000);
+      const r = await net.fetch(url, { headers: { 'User-Agent': ua, 'Accept-Language': 'en-US,en;q=0.8' }, signal: ac.signal });
+      const html = (await r.text()).slice(0, 500000); clearTimeout(t);
+      const meta = k => {
+        const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${k}["'][^>]*content=["']([^"']*)["']`, 'i')) ||
+                  html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${k}["']`, 'i'));
+        return m ? decodeHtml(m[1]) : '';
+      };
+      const title = cleanTitle(meta('og:title') || meta('twitter:title'));
+      const desc = meta('og:description') || meta('twitter:description') || meta('description');
+      const image = meta('og:image') || meta('twitter:image');
+      if (title || image) return { title, desc, image };
+    } catch {}
+  }
+  return null;
+}
+async function enrich(s) {
+  const info = await profileInfo(s.url); if (!info) return;
+  s.title = info.title; s.bio = info.desc;
+  if (info.image) {
+    try {
+      const r = await net.fetch(info.image);
+      if (r.ok) { fs.mkdirSync(s.folder, { recursive: true }); const f = path.join(s.folder, '.avatar.jpg'); fs.writeFileSync(f, Buffer.from(await r.arrayBuffer())); s.avatar = f; s.avT = Date.now(); }
+    } catch {}
+  }
+  saveSubs();
+}
 
 // ---------- subscriptions ----------
 ipcMain.handle('add-sub', (_e, { url, name }) => {
@@ -182,8 +285,8 @@ ipcMain.handle('add-sub', (_e, { url, name }) => {
   const slug = clean(seg);
   const s = { id: Date.now().toString(36), url, name: name || seg.replace(/^@/, ''), host: p.host,
     folder: path.join(settings.outDir, p.host, slug), last: null, count: 0 };
-  subs.push(s); saveSubs(); enqueue(s.id);
-  return { ok: true, sub: s };
+  subs.push(s); saveSubs(); enqueue(s.id); enrich(s);
+  return { ok: true, sub: { ...s } };
 });
 ipcMain.handle('remove-sub', (_e, id) => { subs = subs.filter(s => s.id !== id); queue = queue.filter(q => q !== id); saveSubs(); return true; });
 ipcMain.handle('media', (_e, id) => {
@@ -268,6 +371,8 @@ ipcMain.handle('preview', async (_e, { url }) => {
   if (pchild) { pchild.kill(); pchild = null; }
   const ck = await exportCookies();
   let seg = ''; try { seg = new URL(url).pathname.split('/').filter(Boolean)[0] || ''; } catch {}
+  const handle = '@' + seg.replace(/^@/, '');
+  profileInfo(url).then(i => send('preview-profile', { title: (i && i.title) || '', desc: (i && i.desc) || '', image: (i && i.image) || '', handle })).catch(() => {});
   const args = p.ytdlp
     ? ['-J', '--flat-playlist', '--playlist-end', String(PREVIEW_COUNT), '--no-warnings', '--cookies', ck, url]
     : ['-g', '--range', `1-${PREVIEW_COUNT}`, '--cookies', ck, url];
@@ -284,7 +389,7 @@ ipcMain.handle('preview', async (_e, { url }) => {
       if (!/^https?:\/\//.test(u) || count >= PREVIEW_COUNT) return;
       let name = u.split('?')[0].split('/').pop() || 'file'; try { name = decodeURIComponent(name); } catch {}
       const ext = name.split('.').pop().toLowerCase(), img = IMG.includes(ext);
-      emit({ src: img ? u : null, label: name, video: !img });
+      emit({ src: u, label: name, video: !img });
     });
     me.stdout.on('data', d => { poke(); if (p.ytdlp) { if (out.length < 8e6) out += d; } else byUrl(d); });
     me.stderr.on('data', d => { poke(); err += d; });
@@ -295,12 +400,12 @@ ipcMain.handle('preview', async (_e, { url }) => {
         try {
           const o = JSON.parse(out); profile = o.uploader || o.channel || o.title || profile;
           for (const e of (o.entries || [o]).filter(Boolean))
-            emit({ src: e.thumbnail || (e.thumbnails && e.thumbnails.length ? e.thumbnails[e.thumbnails.length - 1].url : null), label: e.title || e.id, video: true });
+            emit({ src: e.thumbnail || (e.thumbnails && e.thumbnails.length ? e.thumbnails[e.thumbnails.length - 1].url : null), label: e.title || e.id, video: true, thumbOnly: true });
         } catch {}
       }
       if (me.killed && !idled) return resolve({ ok: false, cancelled: true });
       if (!count) return resolve({ ok: false, error: idled ? 'Preview timed out (no response for 2 minutes).' : (lastErr(err) || 'Nothing found. Log in with 🔑 first if the site requires it.') });
-      resolve({ ok: true, count, profile });
+      resolve({ ok: true, count, profile, warn: lastErr(err) });
     });
   });
 });
@@ -325,13 +430,27 @@ function setupUpdates() {
   setInterval(check, 6 * 3600 * 1000);
 }
 ipcMain.handle('check-update', () => { if (!updater) return false; updater.checkForUpdates().catch(() => {}); return true; });
-ipcMain.handle('install-update', () => { if (updater) updater.quitAndInstall(); });
+ipcMain.handle('install-update', () => { quitting = true; if (updater) updater.quitAndInstall(); });
 ipcMain.handle('open-release', () => shell.openExternal(RELEASES));
 
 // ---------- boot ----------
-app.whenReady().then(() => {
-  subs = readJ('subs.json', []);
-  settings = Object.assign({ outDir: path.join(app.getPath('pictures'), 'Hoardr'), interval: 0 }, readJ('settings.json', {}));
-  createWindow(); schedule(); setupUpdates();
-});
-app.on('window-all-closed', () => { if (child) child.kill(); if (pchild) pchild.kill(); app.quit(); });
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', showWin);
+  app.on('activate', showWin);
+  app.on('before-quit', () => { quitting = true; });
+  app.on('window-all-closed', () => { if (!trayOk) app.quit(); });
+  app.whenReady().then(() => {
+    app.setAppUserModelId('com.fsocietyshinjuu.hoardr');
+    subs = readJ('subs.json', []);
+    settings = Object.assign({ outDir: path.join(app.getPath('pictures'), 'Hoardr'), interval: 0 }, readJ('settings.json', {}));
+    // Make the login window look like a normal Chrome to sites that block embedded browsers
+    ses().webRequest.onBeforeSendHeaders((d, cb) => {
+      const h = d.requestHeaders;
+      for (const k of Object.keys(h)) if (k.toLowerCase() === 'sec-ch-ua') h[k] = String(h[k]).replace(/"Electron";v="[^"]*",?\s*/g, '').replace(/,\s*$/, '');
+      cb({ requestHeaders: h });
+    });
+    createWindow(); createTray(); schedule(); setupUpdates();
+  });
+}

@@ -17,6 +17,9 @@ Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https:/
 
 ## ✨ Features
 - 🔑 **In-app login**: sign in to Instagram, X, Facebook, Threads, TikTok and more inside Hoardr
+- ⌨️ **Add by username**: pick the site, type a username or paste a link
+- 👤 **Profile cards** with picture, name and bio
+- 🔔 **Tray mode**: closing the window keeps syncing in the background
 - 📚 **Subscriptions**: add profiles once; only new posts are downloaded on each check
 - ⏱️ **Auto-check** on a schedule (30 min to daily)
 - 🖼️ **Built-in gallery** for every profile

@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src https: data: file:; media-src file:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src https: data: file:; media-src file: https:">
 <title>Hoardr</title><link rel="stylesheet" href="style.css"></head>
 <body><div id="app">
 <aside>
   <div class="brand">Hoard<span>r</span> <small id="ver"></small></div>
   <div class="add">
-    <input id="url" placeholder="Paste a profile link…">
+    <select id="site"><option value="instagram">Instagram</option><option value="x">X (Twitter)</option><option value="facebook">Facebook</option><option value="threads">Threads</option><option value="tiktok">TikTok</option><option value="reddit">Reddit</option><option value="pinterest">Pinterest</option><option value="youtube">YouTube</option><option value="other">Other (paste link)</option></select>
+    <input id="url" placeholder="Username or profile link…">
     <div class="r"><button id="prev" class="ghost">Preview</button><button id="add">Add</button></div>
   </div>
   <div id="subs"></div>
@@ -16,6 +17,7 @@
   <div id="upd" hidden><span id="updText"></span><button id="updBtn"></button></div>
   <div class="head"><div><b id="title">Welcome</b><small id="sub"></small></div>
     <div class="btns"><button id="check" class="ghost" hidden>Check now</button><button id="folder" class="ghost" hidden>Open folder</button><button id="remove" class="ghost" hidden>Remove</button><button id="stop" class="ghost" hidden>Stop</button></div></div>
+  <div id="pcard" hidden><img id="pav" alt=""><div><b id="pname"></b> <small id="phandle"></small><p id="pbio"></p></div></div>
   <div id="prog" hidden><div class="bar"><i id="barfill"></i></div><div id="progText"></div></div>
   <div id="grid"></div>
   <div id="empty">Log in to a site with 🔑, paste a profile link, preview it, then press <b>Add</b>. Hoardr keeps it synced.</div>
@@ -36,6 +38,14 @@
     <button data-n="YouTube" data-l="YouTube" data-u="https://www.youtube.com">YouTube</button>
   </div>
   <label>Other site</label><div class="pick"><input id="otherU" placeholder="https://…"><button id="otherGo" class="ghost">Open</button></div>
+  <details class="alt"><summary>Can't sign in? Use cookies instead</summary>
+    <p class="mut">X often blocks sign-in inside apps. In your normal browser log in to x.com, press F12 → Application → Cookies → https://x.com, then copy these two values:</p>
+    <label>auth_token</label><input id="xAuth" placeholder="auth_token value" autocomplete="off">
+    <label>ct0</label><input id="xCt0" placeholder="ct0 value (optional)" autocomplete="off">
+    <div class="end"><button class="ghost" id="xSave">Save X login</button></div>
+    <p class="mut">For any other site, import a cookies.txt file exported from your browser:</p>
+    <button class="ghost" id="impCk">Import cookies.txt…</button>
+  </details>
   <p class="mut" id="who"></p><div class="end"><button class="ghost" id="loginClose">Close</button></div></dialog>
 
 <dialog id="dSet"><h3>Settings</h3>

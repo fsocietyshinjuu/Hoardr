@@ -47,6 +47,9 @@ footer{text-align:center;color:var(--mut);padding:30px 0 40px;font-size:14px}
 <div class="c"><h3>🔑 In-app login</h3><p>Sign in inside Hoardr. It closes itself the moment you're logged in, and shows a ✓ for every site you're signed in to. No cookie exporting.</p></div>
 <div class="c"><h3>📚 Subscriptions</h3><p>Add a profile once. Each check downloads only what's new, so nothing is fetched twice.</p></div>
 <div class="c"><h3>📊 Live progress <span class="new">NEW</span></h3><p>A progress bar, new-file counter and current filename, with the gallery filling up as files arrive.</p></div>
+<div class="c"><h3>👤 Profile cards <span class="new">NEW</span></h3><p>See the profile picture, name and bio before you subscribe, and in the sidebar after.</p></div>
+<div class="c"><h3>⌨️ Add by username <span class="new">NEW</span></h3><p>Pick the site from a dropdown and type just the username, or paste the full profile link.</p></div>
+<div class="c"><h3>🔔 Runs in the tray <span class="new">NEW</span></h3><p>Closing the window keeps Hoardr syncing in the background. Click the tray icon to bring it back.</p></div>
 <div class="c"><h3>👀 Streaming preview <span class="new">NEW</span></h3><p>Thumbnails appear one by one as they're found, with a Stop button. Check a profile before you subscribe.</p></div>
 <div class="c"><h3>🖼️ Built-in gallery</h3><p>Browse each profile's photos and videos in the app, one click to open.</p></div>
 <div class="c"><h3>⏱️ Auto-check</h3><p>Every 30 minutes up to daily, so your library stays current on its own.</p></div>
@@ -67,13 +70,20 @@ footer{text-align:center;color:var(--mut);padding:30px 0 40px;font-size:14px}
 <h2 id="download">Get Hoardr</h2>
 <p class="lead" id="dlver">Pick your platform.</p>
 <div class="dl">
-<a href="https://github.com/fsocietyshinjuu/Hoardr/releases/latest" id="d-win">🪟 Windows<small>Setup installer (auto-updates)</small></a>
+<a href="https://github.com/fsocietyshinjuu/Hoardr/releases/latest" id="d-win"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align:-3px;margin-right:6px"><path d="M3 5.6l7.6-1.1v7.1H3zM11.7 4.3L21 3v8.6h-9.3zM3 12.6h7.6v7.1L3 18.6zM11.7 12.6H21V21l-9.3-1.3z"/></svg>Windows<small>Setup installer (auto-updates)</small></a>
 <a href="https://github.com/fsocietyshinjuu/Hoardr/releases/latest" id="d-mac">🍎 macOS<small>.dmg (unsigned: right-click → Open)</small></a>
 <a href="https://github.com/fsocietyshinjuu/Hoardr/releases/latest" id="d-linux">🐧 Linux<small>AppImage (auto-updates)</small></a></div>
 
 <h2 id="changelog">Changelog</h2>
 <p class="lead">What's new in each release. <a href="https://github.com/fsocietyshinjuu/Hoardr/releases">All releases ↗</a></p>
 <div class="log">
+<div class="rel"><h3>v1.2.0<small>2026-11-19</small></h3><ul>
+<li><b>Add by username</b>: choose the site from a dropdown and paste a username, or paste a full link (the site is detected automatically).</li>
+<li><b>Profile cards</b>: profile picture, name and bio in the preview and in the sidebar.</li>
+<li><b>Tray mode</b>: Hoardr opens maximized, and closing the window keeps it running in the system tray with a notification.</li>
+<li><b>Sign-in fixes</b>: faster auto-close after login, re-login option, and a cookie fallback (paste X <code>auth_token</code> or import a cookies.txt) for sites that block in-app sign-in.</li>
+<li><b>Preview</b>: video thumbnails are shown, and problems are reported instead of a blank grid.</li>
+<li><b>Fixed</b>: broken Windows icon on this page.</li></ul></div>
 <div class="rel"><h3>v1.1.0<small>2026-11-18</small></h3><ul>
 <li><b>New app icon</b> for the app, installers and window.</li>
 <li><b>Live progress</b>: progress bar, new-file counter and current file while syncing, with the gallery updating as files arrive.</li>

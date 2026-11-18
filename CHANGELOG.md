@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](https://semver.org).
 
+## [1.2.0] - 2026-11-19
+### Added
+- **Add by username**: site dropdown plus username-only or full-link input; pasting a link selects the site automatically.
+- **Profile cards**: profile picture, name and bio shown in the preview and the sidebar (best effort, from the page's public preview tags).
+- **Tray mode**: the app opens maximized; closing the window hides it to the system tray with a notification, and a tray menu offers Open, Check all and Quit. Only one instance runs at a time.
+- **Cookie fallback** for sites that block in-app sign-in: paste X `auth_token`/`ct0`, or import a cookies.txt file.
+- Re-login option when already signed in to a site.
+- Video thumbnails in preview and gallery.
+### Fixed
+- Login window now closes reliably right after sign-in (checks every second and on navigation).
+- Preview reports warnings instead of silently showing a nearly empty grid.
+- Broken Windows icon on the landing page.
+
 ## [1.1.0] - 2026-11-18
 ### Added
 - **New app icon** (app window, installers and landing page).
