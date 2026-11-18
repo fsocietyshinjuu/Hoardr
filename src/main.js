@@ -29,6 +29,10 @@ function plan(url, mode) {
   return { host, ytdlp, cmd: binPath(ytdlp ? 'yt-dlp' : 'gallery-dl') };
 }
 
+const authArgs = (cookies, browser) =>
+  browser ? ['--cookies-from-browser', browser] : (cookies ? ['--cookies', cookies] : []);
+const lastErr = s => s.trim().split(/\r?\n/).filter(Boolean).slice(-2).join(' | ');
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1000, height: 780, minWidth: 760, minHeight: 600, backgroundColor: '#0f1117',
@@ -47,10 +51,14 @@ ipcMain.handle('pick-cookies', async () => {
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('open-dir', (_e, p) => shell.openPath(p));
+ipcMain.handle('open-external', (_e, u) => {
+  try { const x = new URL(u); if (x.protocol === 'http:' || x.protocol === 'https:') { shell.openExternal(x.href); return true; } } catch {}
+  return false;
+});
 ipcMain.handle('version', () => app.getVersion());
 
 // ---------- Preview: list items without downloading ----------
-ipcMain.handle('preview', (_e, { url, cookies, mode }) => new Promise(resolve => {
+ipcMain.handle('preview', (_e, { url, cookies, mode, browser }) => new Promise(resolve => {
   const p = plan(url, mode);
   if (p.error) return resolve({ ok: false, error: p.error });
   if (pchild) { pchild.kill(); pchild = null; }
@@ -58,7 +66,7 @@ ipcMain.handle('preview', (_e, { url, cookies, mode }) => new Promise(resolve =>
   const args = p.ytdlp
     ? ['-J', '--flat-playlist', '--playlist-end', String(PREVIEW_COUNT), '--no-warnings']
     : ['-j', '--range', `1-${PREVIEW_COUNT}`];
-  if (cookies) args.push('--cookies', cookies);
+  args.push(...authArgs(cookies, browser));
   args.push(url);
 
   let out = '', err = '', timedOut = false;
@@ -98,10 +106,10 @@ ipcMain.handle('preview', (_e, { url, cookies, mode }) => new Promise(resolve =>
           }
         }
       }
-      if (!items.length) return resolve({ ok: false, error: (err.trim().split('\n').pop()) || 'Nothing found. The profile may be private or need a cookies file.' });
+      if (!items.length) return resolve({ ok: false, error: lastErr(err) || 'Nothing found. The profile may be private or need a cookies file.' });
       resolve({ ok: true, profile, items, limit: PREVIEW_COUNT });
     } catch {
-      resolve({ ok: false, error: (err.trim().split('\n').pop()) || 'Could not read preview data.' });
+      resolve({ ok: false, error: lastErr(err) || 'Could not read preview data.' });
     }
   });
 }));
@@ -109,7 +117,7 @@ ipcMain.handle('preview', (_e, { url, cookies, mode }) => new Promise(resolve =>
 ipcMain.handle('cancel-preview', () => { if (pchild) { pchild.kill(); pchild = null; } return true; });
 
 // ---------- Download ----------
-ipcMain.handle('start', (_e, { url, outDir, cookies, mode, rateLimit }) => {
+ipcMain.handle('start', (_e, { url, outDir, cookies, mode, rateLimit, browser }) => {
   const send = (type, text) => win.webContents.send('log', { type, text });
   const p = plan(url, mode);
   if (p.error) return { ok: false, error: p.error };
@@ -122,7 +130,7 @@ ipcMain.handle('start', (_e, { url, outDir, cookies, mode, rateLimit }) => {
   } else {
     args = ['-d', outDir, '--write-metadata'];
   }
-  if (cookies) args.push('--cookies', cookies);
+  args.push(...authArgs(cookies, browser));
   if (rateLimit) args.push('--limit-rate', rateLimit);
   args.push(url);
 

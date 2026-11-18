@@ -3,6 +3,7 @@ contextBridge.exposeInMainWorld('api', {
   pickDir: () => ipcRenderer.invoke('pick-dir'),
   pickCookies: () => ipcRenderer.invoke('pick-cookies'),
   openDir: p => ipcRenderer.invoke('open-dir', p),
+  openExternal: u => ipcRenderer.invoke('open-external', u),
   version: () => ipcRenderer.invoke('version'),
   preview: o => ipcRenderer.invoke('preview', o),
   cancelPreview: () => ipcRenderer.invoke('cancel-preview'),

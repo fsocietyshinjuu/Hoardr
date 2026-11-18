@@ -20,9 +20,14 @@
           <div class="pick"><input id="cookies" readonly placeholder="Optional cookies.txt"><button id="pickCk" class="ghost">Browse</button></div></div>
         <div><label>Rate limit (e.g. 2M)</label><input id="rate" placeholder="Optional"></div>
       </div>
+      <div class="row">
+        <div><label>Use login from your browser (easiest, no cookies file)</label>
+          <select id="browser"><option value="">None</option><option>brave</option><option>chrome</option><option>firefox</option><option>edge</option><option>chromium</option><option>opera</option><option>vivaldi</option><option>safari</option></select></div>
+        <div><label>&nbsp;</label><small>Log in to the site in that browser first. If it fails, close the browser and retry, or use a cookies file.</small></div>
+      </div>
     </details>
     <div class="actions">
-      <button id="prev" class="ghost">Preview</button><button id="go">Download</button><button id="stop" class="ghost" disabled>Cancel</button>
+      <button id="prev" class="ghost">Preview</button><button id="ext" class="ghost" title="Open this URL in your default browser">Open in browser</button><button id="go">Download</button><button id="stop" class="ghost" disabled>Cancel</button>
       <button id="open" class="ghost">Open folder</button><span id="status"></span>
     </div>
   </section>

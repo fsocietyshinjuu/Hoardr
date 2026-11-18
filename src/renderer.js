@@ -13,7 +13,7 @@ $('pickCk').onclick = async () => { const p = await api.pickCookies(); if (p) $(
 $('open').onclick = () => $('out').value && api.openDir($('out').value);
 $('stop').onclick = () => { api.cancel(); line('Cancelled.', 'err'); setBusy(false); };
 $('go').onclick = async () => {
-  const r = await api.start({ url: $('url').value.trim(), outDir: $('out').value, cookies: $('cookies').value || null, mode: $('mode').value, rateLimit: $('rate').value.trim() || null });
+  const r = await api.start({ url: $('url').value.trim(), outDir: $('out').value, cookies: $('cookies').value || null, mode: $('mode').value, rateLimit: $('rate').value.trim() || null, browser: $('browser').value || null });
   if (!r.ok) return line(r.error, 'err');
   setBusy(true);
 };
@@ -43,10 +43,15 @@ $('prev').onclick = async () => {
   if (!url) return line('Enter a URL to preview.', 'err');
   $('prev').disabled = true;
   $('status').innerHTML = '<span class="spin"></span>Loading preview…';
-  const r = await api.preview({ url, cookies: $('cookies').value || null, mode: $('mode').value });
+  const r = await api.preview({ url, cookies: $('cookies').value || null, mode: $('mode').value, browser: $('browser').value || null });
   $('prev').disabled = busy; $('status').textContent = '';
   if (!r.ok) { $('pv').hidden = true; return line('Preview: ' + r.error, 'err'); }
   showPreview(r);
 };
 $('pvclose').onclick = () => { api.cancelPreview(); $('pv').hidden = true; };
 $('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('prev').click(); });
+
+$('ext').onclick = async () => {
+  const u = $('url').value.trim();
+  if (!u || !(await api.openExternal(u))) line('Enter a valid http(s) URL to open.', 'err');
+};

@@ -17,6 +17,13 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - GitHub Actions workflows for tagged releases and GitHub Pages landing page.
 - Built-in block for paid, subscriber-only platforms (OnlyFans, Fantia).
 
+## [1.2.0] - 2026-11-18
+### Added
+- **Use login from your browser**: pick Brave, Chrome, Firefox, Edge and more; Hoardr reads that browser's existing session, so no cookies file is needed.
+- **Open in browser** button to view the profile URL in your default browser.
+### Improved
+- Preview errors now show the real message from the engine (for example "login required").
+
 ## [1.1.1] - 2026-11-18
 ### Fixed
 - Release workflow: Windows installer and portable builds no longer share one filename.
