@@ -1,9 +1,9 @@
 {
   "name": "hoardr",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Desktop app to download public media from social profiles, powered by gallery-dl and yt-dlp.",
   "main": "src/main.js",
-  "author": "YOUR_NAME",
+  "author": "fsocietyshinjuu",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
