@@ -1,0 +1,39 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, ytdlp: yt-dlp.exe,    gdl: gallery-dl.exe, out: yt-dlp.exe,  gout: gallery-dl.exe }
+          - { os: macos-latest,   ytdlp: yt-dlp_macos,  gdl: gallery-dl.bin, out: yt-dlp,      gout: gallery-dl }
+          - { os: ubuntu-latest,  ytdlp: yt-dlp_linux,  gdl: gallery-dl.bin, out: yt-dlp,      gout: gallery-dl }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Fetch engines
+        shell: bash
+        run: |
+          mkdir -p bin
+          curl -fsSL -o "bin/${{ matrix.out }}"  "https://github.com/yt-dlp/yt-dlp/releases/latest/download/${{ matrix.ytdlp }}"
+          curl -fsSL -o "bin/${{ matrix.gout }}" "https://github.com/mikf/gallery-dl/releases/latest/download/${{ matrix.gdl }}"
+          chmod +x bin/* || true
+      - run: npm install
+      - run: npm run dist
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
