@@ -94,3 +94,18 @@ api.onState(m => { m.running ? running.add(m.id) : running.delete(m.id); renderS
 api.onLogin(() => { showWho(); line('Login saved.', 'ok'); });
 
 (async () => { const s = await api.state(); subs = s.subs; $('ver').textContent = 'v' + s.version; renderSubs(); header('Welcome', '', false); })();
+
+// ---- auto update ----
+let updState = null;
+api.onUpdate(m => {
+  updState = m.state;
+  const box = $('upd'), t = $('updText'), b = $('updBtn');
+  box.className = ''; box.hidden = false; b.hidden = false;
+  if (m.state === 'downloading') { t.textContent = `Hoardr ${m.version} is downloading in the background…`; b.hidden = true; }
+  else if (m.state === 'ready') { t.textContent = `Hoardr ${m.version} is ready.`; b.textContent = 'Restart & update'; b.onclick = () => api.installUpdate(); }
+  else if (m.state === 'manual') { t.textContent = `Hoardr ${m.version} is available.`; b.textContent = 'Download'; b.onclick = () => api.openRelease(); }
+  else { box.hidden = true; }
+  if (m.state === 'none') $('chkMsg').textContent = 'You are up to date.';
+  if (m.state === 'error') { $('chkMsg').textContent = 'Update check failed.'; }
+});
+$('chk').onclick = async () => { $('chkMsg').textContent = (await api.checkUpdate()) ? 'Checking…' : 'Updates work in the installed app only.'; };

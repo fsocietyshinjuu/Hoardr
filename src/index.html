@@ -13,6 +13,7 @@
   <div class="foot"><button id="login" class="ghost">🔑 Log in to a site</button><button id="set" class="ghost">⚙ Settings</button></div>
 </aside>
 <section id="main">
+  <div id="upd" hidden><span id="updText"></span><button id="updBtn"></button></div>
   <div class="head"><div><b id="title">Welcome</b><small id="sub"></small></div>
     <div class="btns"><button id="check" class="ghost" hidden>Check now</button><button id="folder" class="ghost" hidden>Open folder</button><button id="remove" class="ghost" hidden>Remove</button><button id="stop" class="ghost" hidden>Stop</button></div></div>
   <div id="grid"></div>
@@ -36,6 +37,7 @@
   <label>Save folder</label><div class="pick"><input id="outDir" readonly><button id="outBrowse" class="ghost">Browse</button></div>
   <label>Auto-check subscriptions</label>
   <select id="interval"><option value="0">Off (manual)</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option><option value="360">Every 6 hours</option><option value="1440">Every day</option></select>
+  <label>Updates</label><button id="chk" class="ghost">Check for updates</button> <small id="chkMsg"></small>
   <label>Privacy</label><button id="logout" class="ghost">Sign out of all sites</button>
   <div class="end"><button class="ghost" id="setClose">Close</button></div></dialog>
 <script src="renderer.js"></script></body></html>

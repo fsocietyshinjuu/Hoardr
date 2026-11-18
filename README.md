@@ -5,11 +5,11 @@
 **A clean, cross-platform desktop app for saving public media from social profiles.**
 Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
-[![Release](https://img.shields.io/github/v/release/YOUR_USER/hoardr?color=7c5cff)](../../releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/YOUR_USER/hoardr/release.yml)](../../actions)
+[![Release](https://img.shields.io/github/v/release/fsocietyshinjuu/Hoardr?color=7c5cff)](../../releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/fsocietyshinjuu/Hoardr/release.yml)](../../actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[**Download**](../../releases/latest) · [**Website**](https://YOUR_USER.github.io/hoardr) · [Changelog](CHANGELOG.md)
+[**Download**](../../releases/latest) · [**Website**](https://fsocietyshinjuu.github.io/Hoardr) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -21,6 +21,9 @@ Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https:/
 - 👀 **Preview** a profile before subscribing
 - 📦 Engines bundled, no extra setup
 - 🖥️ Windows · macOS · Linux
+
+## 🔄 Updates
+The installed app updates itself: it checks GitHub Releases on launch, downloads quietly, then offers **Restart & update**. macOS (unsigned), the Windows portable build and the Linux `.deb` show a **Download** notice instead.
 
 ## 🌐 Supported sites
 Anything gallery-dl or yt-dlp supports, including Instagram, X/Twitter, Facebook, Threads, Reddit, Pinterest, TikTok, YouTube, Vimeo and many more. Coverage changes as sites change.
@@ -40,7 +43,7 @@ Export cookies from a browser you are logged into using a "cookies.txt" extensio
 <details><summary><b>🛠️ Build from source</b></summary>
 
 ```bash
-git clone https://github.com/YOUR_USER/hoardr && cd hoardr
+git clone https://github.com/fsocietyshinjuu/Hoardr && cd Hoardr
 mkdir bin   # place yt-dlp and gallery-dl binaries here (or have them on PATH)
 npm install
 npm start          # run
@@ -65,4 +68,4 @@ Repo **Settings → Pages → Source: GitHub Actions**. The **Pages** workflow d
 Only download content you own or have permission to save. Respect creators, site terms and your local laws. The authors are not responsible for misuse.
 
 ## 📄 License
-MIT © YOUR_NAME
+MIT © fsocietyshinjuu

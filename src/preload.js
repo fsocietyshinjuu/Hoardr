@@ -7,5 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   login: inv('login'), logins: inv('logins'), logout: inv('logout'),
   addSub: inv('add-sub'), removeSub: inv('remove-sub'), media: inv('media'),
   sync: inv('sync'), cancel: inv('cancel'), preview: inv('preview'),
+  checkUpdate: inv('check-update'), installUpdate: inv('install-update'), openRelease: inv('open-release'),
+  onUpdate: on('update'),
   onLog: on('log'), onSubs: on('subs'), onState: on('state'), onLogin: on('login-done')
 });

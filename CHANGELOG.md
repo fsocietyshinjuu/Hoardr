@@ -1,42 +1,14 @@
 # Changelog
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](https://semver.org).
 
-## [1.1.0] - 2026-11-18
-### Added
-- **Profile preview**: see the profile name and a thumbnail grid of the first 24 items before downloading, without saving anything.
-- Press Enter in the URL box to preview.
-### Changed
-- Project renamed from MediaGrab to **Hoardr**.
-
 ## [1.0.0] - 2026-11-18
 ### Added
-- Electron desktop app for Windows, macOS and Linux.
-- Auto-routing between gallery-dl (profiles, images) and yt-dlp (video sites).
-- Output folder picker, optional Netscape cookies file, rate limiting.
-- Live log console with cancel support.
-- GitHub Actions workflows for tagged releases and GitHub Pages landing page.
-- Built-in block for paid, subscriber-only platforms (OnlyFans, Fantia).
-
-## [2.0.0] - 2026-11-18
-### Added
-- **In-app login** for Instagram, X, Facebook, Threads, TikTok, Reddit, Pinterest, YouTube or any site. Sign in inside Hoardr; no browser cookie reading or cookies.txt needed.
-- **Subscriptions**: add profiles, Hoardr remembers them and only downloads new posts on each check.
-- **Auto-check** every 30 minutes to daily.
-- **Built-in gallery** per profile with thumbnails and one-click open.
-- Sidebar layout with per-profile status, Check now, Open folder, Remove.
-### Changed
-- Browser-cookie and cookies-file inputs removed in favour of in-app login.
-
-## [1.2.0] - 2026-11-18
-### Added
-- **Use login from your browser**: pick Brave, Chrome, Firefox, Edge and more; Hoardr reads that browser's existing session, so no cookies file is needed.
-- **Open in browser** button to view the profile URL in your default browser.
-### Improved
-- Preview errors now show the real message from the engine (for example "login required").
-
-## [1.1.1] - 2026-11-18
-### Fixed
-- Release workflow: Windows installer and portable builds no longer share one filename.
-- Release workflow: macOS now bundles a real gallery-dl build (upstream ships no macOS binary).
-- Release workflow: single publish job after all builds, avoiding concurrent-release races.
-- package.json: added author email and homepage required for `.deb` packaging.
+- Desktop app for Windows, macOS and Linux (Electron), powered by gallery-dl and yt-dlp, with both engines bundled.
+- **In-app login** for Instagram, X, Facebook, Threads, TikTok, Reddit, Pinterest, YouTube or any site. Sign in inside Hoardr; no cookies file needed.
+- **Subscriptions**: add profiles once; only new posts are downloaded on each check.
+- **Auto-check** on a schedule (30 minutes to daily).
+- **Profile preview**: thumbnail grid of the first 24 items before subscribing.
+- **Built-in gallery** per profile with one-click open.
+- **Auto-update** via GitHub Releases (Windows Setup installer and Linux AppImage; other builds show a download notice).
+- Block on paid, subscriber-only platforms (OnlyFans, Fantia).
+- GitHub Actions workflows for tagged releases and the GitHub Pages landing page.

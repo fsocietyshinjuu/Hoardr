@@ -229,10 +229,33 @@ ipcMain.handle('preview', async (_e, { url }) => {
   });
 });
 
+// ---------- auto update ----------
+const RELEASES = 'https://github.com/fsocietyshinjuu/Hoardr/releases/latest';
+let updater = null;
+function setupUpdates() {
+  if (!app.isPackaged) return;
+  try { updater = require('electron-updater').autoUpdater; } catch { return; }
+  // Platforms that cannot self-update (unsigned macOS, portable .exe, .deb) only get a notice.
+  const manual = process.platform === 'darwin' || !!process.env.PORTABLE_EXECUTABLE_DIR ||
+    (process.platform === 'linux' && !process.env.APPIMAGE);
+  updater.autoDownload = !manual;
+  updater.autoInstallOnAppQuit = true;
+  updater.on('update-available', i => send('update', { state: manual ? 'manual' : 'downloading', version: i.version }));
+  updater.on('update-downloaded', i => send('update', { state: 'ready', version: i.version }));
+  updater.on('update-not-available', () => send('update', { state: 'none' }));
+  updater.on('error', e => send('update', { state: 'error', message: String(e && e.message || e).split('\n')[0] }));
+  const check = () => updater.checkForUpdates().catch(() => {});
+  setTimeout(check, 5000);
+  setInterval(check, 6 * 3600 * 1000);
+}
+ipcMain.handle('check-update', () => { if (!updater) return false; updater.checkForUpdates().catch(() => {}); return true; });
+ipcMain.handle('install-update', () => { if (updater) updater.quitAndInstall(); });
+ipcMain.handle('open-release', () => shell.openExternal(RELEASES));
+
 // ---------- boot ----------
 app.whenReady().then(() => {
   subs = readJ('subs.json', []);
   settings = Object.assign({ outDir: path.join(app.getPath('pictures'), 'Hoardr'), interval: 0 }, readJ('settings.json', {}));
-  createWindow(); schedule();
+  createWindow(); schedule(); setupUpdates();
 });
 app.on('window-all-closed', () => { if (child) child.kill(); if (pchild) pchild.kill(); app.quit(); });

@@ -1,5 +1,5 @@
 {
-  "name": "Hoardr",
+  "name": "hoardr",
   "productName": "Hoardr",
   "version": "1.0.0",
   "description": "Desktop app to download public media from social profiles, powered by gallery-dl and yt-dlp.",
@@ -11,12 +11,15 @@
     "start": "electron .",
     "dist": "electron-builder --publish never"
   },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
   "devDependencies": {
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.fsocietyshinjuu.Hoardr",
+    "appId": "com.fsocietyshinjuu.hoardr",
     "files": ["src/**/*"],
     "extraResources": [{ "from": "bin", "to": "bin", "filter": ["**/*"] }],
     "publish": [
@@ -26,7 +29,7 @@
     "win": { "target": ["nsis", "portable"] },
     "nsis": { "artifactName": "Hoardr-Setup-${version}-${arch}.${ext}" },
     "portable": { "artifactName": "Hoardr-Portable-${version}-${arch}.${ext}" },
-    "mac": { "target": ["dmg"], "category": "public.app-category.utilities", "identity": null },
+    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.utilities", "identity": null },
     "linux": {
       "target": ["AppImage", "deb"],
       "category": "Utility",
