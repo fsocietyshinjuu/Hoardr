@@ -11,29 +11,65 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, ytdlp: yt-dlp.exe,    gdl: gallery-dl.exe, out: yt-dlp.exe,  gout: gallery-dl.exe }
-          - { os: macos-latest,   ytdlp: yt-dlp_macos,  gdl: gallery-dl.bin, out: yt-dlp,      gout: gallery-dl }
-          - { os: ubuntu-latest,  ytdlp: yt-dlp_linux,  gdl: gallery-dl.bin, out: yt-dlp,      gout: gallery-dl }
+          - { os: windows-latest, name: win }
+          - { os: macos-latest,   name: mac }
+          - { os: ubuntu-latest,  name: linux }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - name: Fetch engines
+
+      - name: Engines (Windows)
+        if: matrix.name == 'win'
         shell: bash
         run: |
           mkdir -p bin
-          curl -fsSL -o "bin/${{ matrix.out }}"  "https://github.com/yt-dlp/yt-dlp/releases/latest/download/${{ matrix.ytdlp }}"
-          curl -fsSL -o "bin/${{ matrix.gout }}" "https://github.com/mikf/gallery-dl/releases/latest/download/${{ matrix.gdl }}"
-          chmod +x bin/* || true
+          curl -fsSL -o bin/yt-dlp.exe     https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          curl -fsSL -o bin/gallery-dl.exe https://github.com/mikf/gallery-dl/releases/latest/download/gallery-dl.exe
+
+      - name: Engines (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          mkdir -p bin
+          curl -fsSL -o bin/yt-dlp     https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+          curl -fsSL -o bin/gallery-dl https://github.com/mikf/gallery-dl/releases/latest/download/gallery-dl.bin
+          chmod +x bin/*
+
+      - name: Engines (macOS)
+        if: matrix.name == 'mac'
+        run: |
+          mkdir -p bin
+          curl -fsSL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
+          chmod +x bin/yt-dlp
+          python3 -m venv .venv && source .venv/bin/activate
+          pip install gallery-dl pyinstaller
+          printf 'from gallery_dl import main\nmain()\n' > gdl_entry.py
+          pyinstaller --onefile --name gallery-dl --collect-all gallery_dl gdl_entry.py
+          cp dist/gallery-dl bin/gallery-dl
+          rm -rf dist build gdl_entry.py gallery-dl.spec
+
       - run: npm install
       - run: npm run dist
-      - name: Publish
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          body_path: RELEASE_NOTES.md
-          files: |
+          name: hoardr-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
             dist/*.exe
             dist/*.dmg
             dist/*.AppImage
             dist/*.deb
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: assets, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          files: assets/*
