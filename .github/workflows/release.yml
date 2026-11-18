@@ -19,35 +19,25 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
 
-      - name: Engines (Windows)
-        if: matrix.name == 'win'
+      - name: Bundle engines (yt-dlp + gallery-dl)
         shell: bash
         run: |
           mkdir -p bin
-          curl -fsSL -o bin/yt-dlp.exe     https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
-          curl -fsSL -o bin/gallery-dl.exe https://github.com/mikf/gallery-dl/releases/latest/download/gallery-dl.exe
-
-      - name: Engines (Linux)
-        if: matrix.name == 'linux'
-        run: |
-          mkdir -p bin
-          curl -fsSL -o bin/yt-dlp     https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
-          curl -fsSL -o bin/gallery-dl https://github.com/mikf/gallery-dl/releases/latest/download/gallery-dl.bin
-          chmod +x bin/*
-
-      - name: Engines (macOS)
-        if: matrix.name == 'mac'
-        run: |
-          mkdir -p bin
-          curl -fsSL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
-          chmod +x bin/yt-dlp
-          python3 -m venv .venv && source .venv/bin/activate
+          case "${{ matrix.name }}" in
+            win)   YT=yt-dlp.exe;   EXT=.exe ;;
+            mac)   YT=yt-dlp_macos; EXT=""   ;;
+            linux) YT=yt-dlp_linux; EXT=""   ;;
+          esac
+          curl -fsSL -o "bin/yt-dlp$EXT" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YT"
           pip install gallery-dl pyinstaller
           printf 'from gallery_dl import main\nmain()\n' > gdl_entry.py
-          pyinstaller --onefile --name gallery-dl --collect-all gallery_dl gdl_entry.py
-          cp dist/gallery-dl bin/gallery-dl
-          rm -rf dist build gdl_entry.py gallery-dl.spec
+          pyinstaller --onefile --name gallery-dl --collect-all gallery_dl --distpath gdlbuild gdl_entry.py
+          cp "gdlbuild/gallery-dl$EXT" "bin/gallery-dl$EXT"
+          chmod +x bin/* || true
+          ls -la bin
 
       - run: npm install
       - run: npm run dist
