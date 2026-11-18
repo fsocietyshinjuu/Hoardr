@@ -1,13 +1,18 @@
-## Hoardr 1.0.0: first release
+## Hoardr 1.1.0
 
-A subscription-style media saver for public social profiles, in the spirit of 4K Stogram but for many sites.
+### What's new
+- 🎨 **New app icon.**
+- 📊 **Live progress**: a progress bar, new-file counter and current filename while syncing. The gallery fills up as files arrive and the sidebar shows "Syncing… N new".
+- 👀 **Streaming preview**: thumbnails appear one by one as they are found, with a Stop button and clear errors.
+- 🔑 **Smarter login**: Hoardr detects when you are signed in, saves the session and closes the popup by itself. A ✓ marks each signed-in site.
 
-### Highlights
-- 🔑 **Log in inside the app** to Instagram, X, Facebook, Threads, TikTok, Reddit, Pinterest, YouTube or any site.
-- 📚 **Subscriptions** that download only new posts on each check.
-- ⏱️ **Auto-check** schedule, **profile preview** and a **built-in gallery**.
-- 🔄 **Auto-update** from GitHub Releases.
-- 📦 Engines bundled, so there is nothing else to install.
+### Fixed
+- Logins now stay saved after the popup closes and after restarting the app.
+- Preview no longer fails silently.
+
+### Updating
+- Installed from the **Setup** `.exe` or the **AppImage**? Hoardr will offer this update by itself.
+- Portable `.exe`, `.deb` and macOS builds: download the new version from below.
 
 ### Downloads
 | Platform | File |
@@ -15,11 +20,5 @@ A subscription-style media saver for public social profiles, in the spirit of 4K
 | Windows | `Hoardr-Setup` installer (auto-updates) or `Hoardr-Portable` |
 | macOS | `.dmg` (unsigned: right-click → Open on first launch) |
 | Linux | `.AppImage` (auto-updates) / `.deb` |
-
-### Notes
-- Self-update works for the Windows Setup installer and the Linux AppImage. The portable build, `.deb` and macOS (unsigned) show a *Download* notice instead.
-- If a site blocks login inside the app window (some "Sign in with Google" flows do), use that site's email/password login.
-- Heavy use of a logged-in account can trigger rate limits. Keep auto-check hourly or slower.
-- Paid/subscriber-only platforms (OnlyFans, Fantia) are blocked.
 
 See [CHANGELOG.md](CHANGELOG.md) for details.

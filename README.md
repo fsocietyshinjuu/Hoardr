@@ -1,6 +1,8 @@
 <div align="center">
 
-# 📥 Hoardr
+<img src="docs/logo.svg" width="110" alt="Hoardr icon">
+
+# Hoardr
 
 **A clean, cross-platform desktop app for saving public media from social profiles.**
 Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).

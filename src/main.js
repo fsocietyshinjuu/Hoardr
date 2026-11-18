@@ -11,6 +11,7 @@ const IMG = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'];
 const VID = ['mp4', 'webm', 'mov', 'mkv', 'm4v'];
 const PART = 'persist:hoardr'; // the in-app login session
 const PREVIEW_COUNT = 24;
+const ICON = path.join(__dirname, '..', 'build', 'icon.png');
 
 let win, child, pchild, timer, running = false;
 let queue = [], subs = [], settings = {};
@@ -74,7 +75,7 @@ async function exportCookies() {
 // ---------- window ----------
 function createWindow() {
   win = new BrowserWindow({
-    width: 1180, height: 780, minWidth: 900, minHeight: 600, backgroundColor: '#0f1117',
+    icon: ICON, width: 1180, height: 780, minWidth: 900, minHeight: 600, backgroundColor: '#0f1117',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   win.setMenuBarVisibility(false);
@@ -93,28 +94,82 @@ ipcMain.handle('open-path', (_e, p) => shell.openPath(p));
 ipcMain.handle('open-folder', (_e, id) => { const s = subs.find(x => x.id === id); if (s) { fs.mkdirSync(s.folder, { recursive: true }); shell.openPath(s.folder); } });
 
 // ---------- login ----------
-ipcMain.handle('login', (_e, url) => {
+const SITES = [
+  { name: 'Instagram', hosts: ['instagram.com'], cookies: ['sessionid'] },
+  { name: 'X', hosts: ['x.com', 'twitter.com'], cookies: ['auth_token'] },
+  { name: 'Facebook', hosts: ['facebook.com'], cookies: ['c_user', 'xs'] },
+  { name: 'Threads', hosts: ['threads.net', 'threads.com'], cookies: ['sessionid'] },
+  { name: 'TikTok', hosts: ['tiktok.com'], cookies: ['sessionid'] },
+  { name: 'Reddit', hosts: ['reddit.com'], cookies: ['reddit_session'] },
+  { name: 'Pinterest', hosts: ['pinterest.com'], cookies: ['_auth'] },
+  { name: 'YouTube', hosts: ['youtube.com', 'google.com'], cookies: ['SAPISID'] }
+];
+const ses = () => session.fromPartition(PART);
+const dom = c => c.domain.replace(/^\./, '');
+
+async function loginStatus() {
+  const cs = await ses().cookies.get({});
+  return SITES.map(s => ({
+    name: s.name,
+    ok: s.cookies.every(n => cs.some(c => c.name === n && c.value && c.value !== '0' &&
+      s.hosts.some(h => dom(c) === h || dom(c).endsWith('.' + h))))
+  }));
+}
+// Session cookies would vanish when the app closes, so give them an expiry and flush to disk
+async function persistCookies() {
+  const cs = await ses().cookies.get({});
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 90;
+  for (const c of cs) {
+    if (c.expirationDate || c.name.startsWith('__Host-')) continue;
+    try {
+      await ses().cookies.set({ url: `http${c.secure ? 's' : ''}://${dom(c)}${c.path || '/'}`, name: c.name, value: c.value,
+        domain: c.domain, path: c.path || '/', secure: c.secure, httpOnly: c.httpOnly, expirationDate: exp });
+    } catch {}
+  }
+  try { await ses().cookies.flushStore(); } catch {}
+}
+
+ipcMain.handle('login', async (_e, { url, site }) => {
   const p = plan(url);
   if (p.error) return { ok: false, error: p.error };
+  const def = SITES.find(x => x.name === site) || SITES.find(x => matches(p.host, x.hosts));
+  const before = def ? (await loginStatus()).find(x => x.name === def.name).ok : false;
   const lw = new BrowserWindow({
-    width: 540, height: 800, parent: win, title: 'Log in, then close this window',
+    icon: ICON, width: 540, height: 800, parent: win, title: `Log in${def ? ' to ' + def.name : ''}`,
     webPreferences: { partition: PART, contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
   lw.setMenuBarVisibility(false);
+  lw.on('page-title-updated', e => e.preventDefault());
   lw.webContents.setUserAgent(lw.webContents.userAgent.replace(/\s?(Electron|hoardr)\/\S+/gi, ''));
   lw.webContents.setWindowOpenHandler(() => ({ action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: PART } } }));
   lw.loadURL(url);
-  lw.on('closed', async () => { await exportCookies(); send('login-done', await logins()); });
-  return { ok: true };
+
+  let done = false, poll;
+  const finish = async () => {
+    await persistCookies(); await exportCookies();
+    send('login-done', { status: await loginStatus(), site: def && def.name });
+  };
+  // Auto-detect a successful login, save it and close the window
+  if (def && !before) {
+    poll = setInterval(async () => {
+      if (done || lw.isDestroyed()) return;
+      const st = (await loginStatus()).find(x => x.name === def.name);
+      if (st && st.ok) {
+        done = true; clearInterval(poll);
+        lw.setTitle(`✓ Signed in to ${def.name}. Closing…`);
+        await finish();
+        setTimeout(() => { if (!lw.isDestroyed()) lw.close(); }, 1200);
+      }
+    }, 1500);
+  }
+  lw.on('closed', async () => { clearInterval(poll); if (!done) { done = true; await finish(); } });
+  return { ok: true, already: before };
 });
-async function logins() {
-  const cs = await session.fromPartition(PART).cookies.get({});
-  return [...new Set(cs.map(c => c.domain.replace(/^\./, '').split('.').slice(-2).join('.')))].sort();
-}
-ipcMain.handle('logins', logins);
+ipcMain.handle('logins', loginStatus);
 ipcMain.handle('logout', async () => {
-  await session.fromPartition(PART).clearStorageData();
+  await ses().clearStorageData();
   try { fs.unlinkSync(jp('cookies.txt')); } catch {}
+  send('login-done', { status: await loginStatus(), site: null });
   return true;
 });
 
@@ -140,7 +195,7 @@ ipcMain.handle('media', (_e, id) => {
 // ---------- sync queue ----------
 function enqueue(id) { if (id === 'all') subs.forEach(s => enqueue(s.id)); else if (!queue.includes(id)) queue.push(id); pump(); }
 ipcMain.handle('sync', (_e, id) => { enqueue(id); return true; });
-ipcMain.handle('cancel', () => { queue = []; if (child) child.kill(); return true; });
+ipcMain.handle('cancel', () => { queue = []; if (child) child.kill(); if (pchild) pchild.kill(); return true; });
 
 async function pump() {
   if (running) return;
@@ -152,6 +207,8 @@ async function pump() {
   running = false;
 }
 
+const splitter = cb => { let b = ''; return d => { b += d; const ls = b.split(/\r?\n/); b = ls.pop(); ls.filter(Boolean).forEach(cb); }; };
+
 async function syncOne(s) {
   const p = plan(s.url);
   if (p.error) return log(s.id, 'err', p.error);
@@ -161,21 +218,41 @@ async function syncOne(s) {
   const args = p.ytdlp
     ? ['-P', s.folder, '-o', '%(title).150B [%(id)s].%(ext)s', '--download-archive', path.join(arch, s.id + '.txt'), '--no-overwrites', '--newline', '--ignore-errors', '--cookies', ck, s.url]
     : ['-D', s.folder, '--download-archive', path.join(arch, s.id + '.sqlite3'), '--cookies', ck, s.url];
+
+  const before = media(s.folder).length;
+  const st = { id: s.id, downloaded: 0, skipped: 0, current: '', pct: null, queued: 0, gained: 0 };
+  let lastEmit = 0;
+  const emit = force => { const n = Date.now(); if (force || n - lastEmit > 150) { lastEmit = n; st.queued = queue.length; send('progress', st); } };
+  const onLine = line => {
+    let m;
+    if (p.ytdlp) {
+      if ((m = line.match(/\[download\]\s+([\d.]+)%/))) { st.pct = parseFloat(m[1]); if (st.pct >= 100) st.downloaded++; }
+      else if ((m = line.match(/\[download\] Destination: (.+)/))) { st.current = path.basename(m[1]); st.pct = 0; }
+      else if (/already (been )?(recorded|downloaded)/.test(line)) st.skipped++;
+    } else if (line.startsWith('# ')) st.skipped++;
+    else if (!line.startsWith('[')) { st.downloaded++; st.current = path.basename(line); }
+    emit();
+  };
+
   send('state', { id: s.id, running: true });
   log(s.id, 'info', `Checking ${s.name} (${path.basename(p.cmd)})`);
+  emit(true);
   await new Promise(res => {
     try { child = spawn(p.cmd, args, { windowsHide: true }); } catch (e) { log(s.id, 'err', String(e)); return res(); }
-    const pipe = t => d => d.toString().split(/\r?\n/).filter(Boolean).forEach(l => log(s.id, t, l));
-    child.stdout.on('data', pipe('out')); child.stderr.on('data', pipe('err'));
+    child.stdout.on('data', splitter(l => { log(s.id, 'out', l); onLine(l); }));
+    child.stderr.on('data', splitter(l => log(s.id, 'err', l)));
     child.on('error', e => { log(s.id, 'err', `Could not launch ${path.basename(p.cmd)}: ${e.message}`); res(); });
     child.on('close', code => {
       child = null;
       if (code !== 0) log(s.id, 'err', `Finished with errors (code ${code}). If the site needs login, use 🔑 Log in to a site.`);
-      else log(s.id, 'ok', 'Up to date.');
       res();
     });
   });
-  s.last = Date.now(); s.count = media(s.folder).length; saveSubs();
+  const total = media(s.folder).length;
+  st.gained = Math.max(0, total - before); st.pct = 100;
+  log(s.id, 'ok', `Done: ${st.gained} new file(s), ${st.skipped} already saved.`);
+  emit(true);
+  s.last = Date.now(); s.count = total; saveSubs();
   send('state', { id: s.id, running: false });
 }
 
@@ -184,47 +261,46 @@ function schedule() {
   if (settings.interval > 0) timer = setInterval(() => enqueue('all'), settings.interval * 60000);
 }
 
-// ---------- preview ----------
+// ---------- preview (streams items as they are found) ----------
 ipcMain.handle('preview', async (_e, { url }) => {
   const p = plan(url);
   if (p.error) return { ok: false, error: p.error };
   if (pchild) { pchild.kill(); pchild = null; }
   const ck = await exportCookies();
+  let seg = ''; try { seg = new URL(url).pathname.split('/').filter(Boolean)[0] || ''; } catch {}
   const args = p.ytdlp
     ? ['-J', '--flat-playlist', '--playlist-end', String(PREVIEW_COUNT), '--no-warnings', '--cookies', ck, url]
-    : ['-j', '--range', `1-${PREVIEW_COUNT}`, '--cookies', ck, url];
+    : ['-g', '--range', `1-${PREVIEW_COUNT}`, '--cookies', ck, url];
+
   return new Promise(resolve => {
-    let out = '', err = '', timedOut = false;
-    try { pchild = spawn(p.cmd, args, { windowsHide: true }); } catch (e) { return resolve({ ok: false, error: String(e) }); }
-    const me = pchild;
-    const t = setTimeout(() => { timedOut = true; me.kill(); }, 60000);
-    me.stdout.on('data', d => { if (out.length < 8e6) out += d; });
-    me.stderr.on('data', d => { err += d; });
-    me.on('error', e => { clearTimeout(t); resolve({ ok: false, error: `Could not launch ${path.basename(p.cmd)}: ${e.message}` }); });
+    let err = '', out = '', count = 0, idle, idled = false, profile = seg.replace(/^@/, '');
+    let me; try { me = spawn(p.cmd, args, { windowsHide: true }); } catch (e) { return resolve({ ok: false, error: String(e) }); }
+    pchild = me;
+    const poke = () => { clearTimeout(idle); idle = setTimeout(() => { idled = true; me.kill(); }, 120000); };
+    poke();
+    const emit = it => { count++; send('preview-item', it); };
+    const byUrl = splitter(l => {
+      const u = l.trim().replace(/^\|\s*/, '').replace(/^ytdl:/, '');
+      if (!/^https?:\/\//.test(u) || count >= PREVIEW_COUNT) return;
+      let name = u.split('?')[0].split('/').pop() || 'file'; try { name = decodeURIComponent(name); } catch {}
+      const ext = name.split('.').pop().toLowerCase(), img = IMG.includes(ext);
+      emit({ src: img ? u : null, label: name, video: !img });
+    });
+    me.stdout.on('data', d => { poke(); if (p.ytdlp) { if (out.length < 8e6) out += d; } else byUrl(d); });
+    me.stderr.on('data', d => { poke(); err += d; });
+    me.on('error', e => { clearTimeout(idle); resolve({ ok: false, error: `Could not launch ${path.basename(p.cmd)}: ${e.message}` }); });
     me.on('close', () => {
-      clearTimeout(t); if (pchild === me) pchild = null;
-      if (timedOut) return resolve({ ok: false, error: 'Preview timed out.' });
-      try {
-        let profile = '', items = [];
-        if (p.ytdlp) {
-          const o = JSON.parse(out);
-          profile = o.uploader || o.channel || o.title || '';
-          items = (o.entries || [o]).filter(Boolean).map(e => ({
-            src: e.thumbnail || (e.thumbnails && e.thumbnails.length ? e.thumbnails[e.thumbnails.length - 1].url : null), label: e.title || e.id, video: true }));
-        } else {
-          for (const x of JSON.parse(out)) {
-            if (x[0] === 2 && !profile) {
-              const m = x[1] || {};
-              profile = (m.user && (m.user.nick || m.user.name || m.user.username)) || (m.author && (m.author.nick || m.author.name)) || m.username || '';
-            } else if (x[0] === 3) {
-              const m = x[2] || {}, ext = String(m.extension || '').toLowerCase(), img = IMG.includes(ext);
-              items.push({ src: img ? x[1] : (m.thumbnail || null), label: (m.filename || 'file') + (ext ? '.' + ext : ''), video: !img });
-            }
-          }
-        }
-        if (!items.length) return resolve({ ok: false, error: lastErr(err) || 'Nothing found. Log in with 🔑 first if the site requires it.' });
-        resolve({ ok: true, profile, items });
-      } catch { resolve({ ok: false, error: lastErr(err) || 'Could not read preview data.' }); }
+      clearTimeout(idle); if (pchild === me) pchild = null;
+      if (p.ytdlp) {
+        try {
+          const o = JSON.parse(out); profile = o.uploader || o.channel || o.title || profile;
+          for (const e of (o.entries || [o]).filter(Boolean))
+            emit({ src: e.thumbnail || (e.thumbnails && e.thumbnails.length ? e.thumbnails[e.thumbnails.length - 1].url : null), label: e.title || e.id, video: true });
+        } catch {}
+      }
+      if (me.killed && !idled) return resolve({ ok: false, cancelled: true });
+      if (!count) return resolve({ ok: false, error: idled ? 'Preview timed out (no response for 2 minutes).' : (lastErr(err) || 'Nothing found. Log in with 🔑 first if the site requires it.') });
+      resolve({ ok: true, count, profile });
     });
   });
 });
