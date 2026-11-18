@@ -1,12 +1,10 @@
 {
-  "name": "hoardr",
-  "version": "1.1.1",
+  "name": "Hoardr",
+  "version": "1.0.0",
   "description": "Desktop app to download public media from social profiles, powered by gallery-dl and yt-dlp.",
   "main": "src/main.js",
-  "author": {
-    "name": "fsocietyshinjuu",
-    "email": "noreply@users.noreply.github.com"
-  },
+  "homepage": "https://github.com/fsocietyshinjuu/Hoardr",
+  "author": { "name": "fsocietyshinjuu", "email": "noreply@users.noreply.github.com" },
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -17,49 +15,19 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.example.hoardr",
+    "appId": "com.fsocietyshinjuu.Hoardr",
     "productName": "Hoardr",
-    "files": [
-      "src/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "bin",
-        "to": "bin",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "category": "public.app-category.utilities",
-      "identity": null
-    },
+    "files": ["src/**/*", "package.json"],
+    "extraResources": [{ "from": "bin", "to": "bin", "filter": ["**/*"] }],
+    "artifactName": "Hoardr-${version}-${os}-${arch}.${ext}",
+    "win": { "target": ["nsis", "portable"] },
+    "nsis": { "artifactName": "Hoardr-Setup-${version}-${arch}.${ext}" },
+    "portable": { "artifactName": "Hoardr-Portable-${version}-${arch}.${ext}" },
+    "mac": { "target": ["dmg"], "category": "public.app-category.utilities", "identity": null },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": ["AppImage", "deb"],
       "category": "Utility",
       "maintainer": "fsocietyshinjuu <noreply@users.noreply.github.com>"
-    },
-    "artifactName": "Hoardr-${version}-${os}-${arch}.${ext}",
-    "nsis": {
-      "artifactName": "Hoardr-Setup-${version}-${arch}.${ext}"
-    },
-    "portable": {
-      "artifactName": "Hoardr-Portable-${version}-${arch}.${ext}"
     }
-  },
-  "homepage": "https://github.com/fsocietyshinjuu/Hoardr"
+  }
 }
