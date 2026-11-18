@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src https: data:">
+<title>Hoardr</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><h1>Hoard<span>r</span></h1><small id="ver"></small></header>
+<main>
+  <section class="card">
+    <label>Profile or post URL</label>
+    <input id="url" placeholder="https://www.instagram.com/username/" autofocus>
+    <div class="row">
+      <div><label>Output folder</label>
+        <div class="pick"><input id="out" readonly placeholder="Choose a folder…"><button id="pickOut" class="ghost">Browse</button></div></div>
+      <div><label>Engine</label>
+        <select id="mode"><option value="auto">Auto-detect</option><option value="images">gallery-dl (profiles, images)</option><option value="video">yt-dlp (videos)</option></select></div>
+    </div>
+    <details><summary>Advanced</summary>
+      <div class="row">
+        <div><label>Cookies file (for content your own account can see)</label>
+          <div class="pick"><input id="cookies" readonly placeholder="Optional cookies.txt"><button id="pickCk" class="ghost">Browse</button></div></div>
+        <div><label>Rate limit (e.g. 2M)</label><input id="rate" placeholder="Optional"></div>
+      </div>
+    </details>
+    <div class="actions">
+      <button id="prev" class="ghost">Preview</button><button id="go">Download</button><button id="stop" class="ghost" disabled>Cancel</button>
+      <button id="open" class="ghost">Open folder</button><span id="status"></span>
+    </div>
+  </section>
+  <section class="card" id="pv" hidden>
+    <div class="pvhead"><div><b id="pvname"></b><small id="pvcount"></small></div><button id="pvclose" class="ghost">Close</button></div>
+    <div id="grid"></div>
+  </section>
+  <section class="card log"><div id="log"></div></section>
+  <p class="note">Only download content you own or have permission to save. Paid platforms (OnlyFans, Fantia) are blocked. You are responsible for following each site's terms and local law.</p>
+</main>
+<script src="renderer.js"></script></body></html>

@@ -1,0 +1,18 @@
+# Changelog
+All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](https://semver.org).
+
+## [1.1.0] - 2026-11-18
+### Added
+- **Profile preview**: see the profile name and a thumbnail grid of the first 24 items before downloading, without saving anything.
+- Press Enter in the URL box to preview.
+### Changed
+- Project renamed from MediaGrab to **Hoardr**.
+
+## [1.0.0] - 2026-11-18
+### Added
+- Electron desktop app for Windows, macOS and Linux.
+- Auto-routing between gallery-dl (profiles, images) and yt-dlp (video sites).
+- Output folder picker, optional Netscape cookies file, rate limiting.
+- Live log console with cancel support.
+- GitHub Actions workflows for tagged releases and GitHub Pages landing page.
+- Built-in block for paid, subscriber-only platforms (OnlyFans, Fantia).

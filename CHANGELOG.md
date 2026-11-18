@@ -16,3 +16,10 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - Live log console with cancel support.
 - GitHub Actions workflows for tagged releases and GitHub Pages landing page.
 - Built-in block for paid, subscriber-only platforms (OnlyFans, Fantia).
+
+## [1.1.1] - 2026-11-18
+### Fixed
+- Release workflow: Windows installer and portable builds no longer share one filename.
+- Release workflow: macOS now bundles a real gallery-dl build (upstream ships no macOS binary).
+- Release workflow: single publish job after all builds, avoiding concurrent-release races.
+- package.json: added author email and homepage required for `.deb` packaging.
