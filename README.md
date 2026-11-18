@@ -14,11 +14,11 @@ Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https:/
 </div>
 
 ## ✨ Features
-- 👀 **Profile preview**: thumbnail grid of the first 24 items before you commit
-- 🖼️ Photos, videos and metadata from public profiles
-- 🔀 Auto-picks the right engine per site
-- 🍪 Optional cookies file for content *your own account* can access
-- 📜 Live log, cancel, rate limiting
+- 🔑 **In-app login**: sign in to Instagram, X, Facebook, Threads, TikTok and more inside Hoardr
+- 📚 **Subscriptions**: add profiles once; only new posts are downloaded on each check
+- ⏱️ **Auto-check** on a schedule (30 min to daily)
+- 🖼️ **Built-in gallery** for every profile
+- 👀 **Preview** a profile before subscribing
 - 📦 Engines bundled, no extra setup
 - 🖥️ Windows · macOS · Linux
 
@@ -29,8 +29,8 @@ Anything gallery-dl or yt-dlp supports, including Instagram, X/Twitter, Facebook
 
 ## 🚀 Quick start
 1. Grab the installer from [Releases](../../releases/latest).
-2. Paste a profile URL and press **Preview** (or Enter) to check what you will get.
-3. Choose a folder and press **Download**.
+2. Click **🔑 Log in to a site**, sign in, and close the login window.
+3. Paste a profile link, press **Preview**, then **Add**. Hoardr downloads it and keeps it synced.
 
 <details><summary><b>🍪 Using cookies</b></summary>
 

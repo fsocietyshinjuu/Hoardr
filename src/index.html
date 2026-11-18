@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src https: data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src https: data: file:; media-src file:">
 <title>Hoardr</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header><h1>Hoard<span>r</span></h1><small id="ver"></small></header>
-<main>
-  <section class="card">
-    <label>Profile or post URL</label>
-    <input id="url" placeholder="https://www.instagram.com/username/" autofocus>
-    <div class="row">
-      <div><label>Output folder</label>
-        <div class="pick"><input id="out" readonly placeholder="Choose a folder…"><button id="pickOut" class="ghost">Browse</button></div></div>
-      <div><label>Engine</label>
-        <select id="mode"><option value="auto">Auto-detect</option><option value="images">gallery-dl (profiles, images)</option><option value="video">yt-dlp (videos)</option></select></div>
-    </div>
-    <details><summary>Advanced</summary>
-      <div class="row">
-        <div><label>Cookies file (for content your own account can see)</label>
-          <div class="pick"><input id="cookies" readonly placeholder="Optional cookies.txt"><button id="pickCk" class="ghost">Browse</button></div></div>
-        <div><label>Rate limit (e.g. 2M)</label><input id="rate" placeholder="Optional"></div>
-      </div>
-      <div class="row">
-        <div><label>Use login from your browser (easiest, no cookies file)</label>
-          <select id="browser"><option value="">None</option><option>brave</option><option>chrome</option><option>firefox</option><option>edge</option><option>chromium</option><option>opera</option><option>vivaldi</option><option>safari</option></select></div>
-        <div><label>&nbsp;</label><small>Log in to the site in that browser first. If it fails, close the browser and retry, or use a cookies file.</small></div>
-      </div>
-    </details>
-    <div class="actions">
-      <button id="prev" class="ghost">Preview</button><button id="ext" class="ghost" title="Open this URL in your default browser">Open in browser</button><button id="go">Download</button><button id="stop" class="ghost" disabled>Cancel</button>
-      <button id="open" class="ghost">Open folder</button><span id="status"></span>
-    </div>
-  </section>
-  <section class="card" id="pv" hidden>
-    <div class="pvhead"><div><b id="pvname"></b><small id="pvcount"></small></div><button id="pvclose" class="ghost">Close</button></div>
-    <div id="grid"></div>
-  </section>
-  <section class="card log"><div id="log"></div></section>
-  <p class="note">Only download content you own or have permission to save. Paid platforms (OnlyFans, Fantia) are blocked. You are responsible for following each site's terms and local law.</p>
-</main>
+<body><div id="app">
+<aside>
+  <div class="brand">Hoard<span>r</span> <small id="ver"></small></div>
+  <div class="add">
+    <input id="url" placeholder="Paste a profile link…">
+    <div class="r"><button id="prev" class="ghost">Preview</button><button id="add">Add</button></div>
+  </div>
+  <div id="subs"></div>
+  <div class="foot"><button id="login" class="ghost">🔑 Log in to a site</button><button id="set" class="ghost">⚙ Settings</button></div>
+</aside>
+<section id="main">
+  <div class="head"><div><b id="title">Welcome</b><small id="sub"></small></div>
+    <div class="btns"><button id="check" class="ghost" hidden>Check now</button><button id="folder" class="ghost" hidden>Open folder</button><button id="remove" class="ghost" hidden>Remove</button><button id="stop" class="ghost" hidden>Stop</button></div></div>
+  <div id="grid"></div>
+  <div id="empty">Log in to a site with 🔑, paste a profile link, preview it, then press <b>Add</b>. Hoardr keeps it synced.</div>
+  <details class="logbox"><summary>Activity log</summary><div id="log"></div></details>
+  <p class="note">Only save content you own or have permission to keep. Paid platforms (OnlyFans, Fantia) are blocked.</p>
+</section></div>
+
+<dialog id="dLogin"><h3>Log in to a site</h3>
+  <p class="mut">A login window opens inside Hoardr. Sign in, then close it. Your session stays in the app.</p>
+  <div class="sites">
+    <button data-u="https://www.instagram.com/accounts/login/">Instagram</button><button data-u="https://x.com/i/flow/login">X (Twitter)</button>
+    <button data-u="https://www.facebook.com/login">Facebook</button><button data-u="https://www.threads.net/login">Threads</button>
+    <button data-u="https://www.tiktok.com/login">TikTok</button><button data-u="https://www.reddit.com/login">Reddit</button>
+    <button data-u="https://www.pinterest.com/login/">Pinterest</button><button data-u="https://www.youtube.com">YouTube</button>
+  </div>
+  <label>Other site</label><div class="pick"><input id="otherU" placeholder="https://…"><button id="otherGo" class="ghost">Open</button></div>
+  <p class="mut" id="who"></p><div class="end"><button class="ghost" id="loginClose">Close</button></div></dialog>
+
+<dialog id="dSet"><h3>Settings</h3>
+  <label>Save folder</label><div class="pick"><input id="outDir" readonly><button id="outBrowse" class="ghost">Browse</button></div>
+  <label>Auto-check subscriptions</label>
+  <select id="interval"><option value="0">Off (manual)</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option><option value="360">Every 6 hours</option><option value="1440">Every day</option></select>
+  <label>Privacy</label><button id="logout" class="ghost">Sign out of all sites</button>
+  <div class="end"><button class="ghost" id="setClose">Close</button></div></dialog>
 <script src="renderer.js"></script></body></html>

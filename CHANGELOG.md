@@ -17,6 +17,16 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - GitHub Actions workflows for tagged releases and GitHub Pages landing page.
 - Built-in block for paid, subscriber-only platforms (OnlyFans, Fantia).
 
+## [2.0.0] - 2026-11-18
+### Added
+- **In-app login** for Instagram, X, Facebook, Threads, TikTok, Reddit, Pinterest, YouTube or any site. Sign in inside Hoardr; no browser cookie reading or cookies.txt needed.
+- **Subscriptions**: add profiles, Hoardr remembers them and only downloads new posts on each check.
+- **Auto-check** every 30 minutes to daily.
+- **Built-in gallery** per profile with thumbnails and one-click open.
+- Sidebar layout with per-profile status, Check now, Open folder, Remove.
+### Changed
+- Browser-cookie and cookies-file inputs removed in favour of in-app login.
+
 ## [1.2.0] - 2026-11-18
 ### Added
 - **Use login from your browser**: pick Brave, Chrome, Firefox, Edge and more; Hoardr reads that browser's existing session, so no cookies file is needed.

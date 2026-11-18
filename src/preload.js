@@ -1,14 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const inv = c => (...a) => ipcRenderer.invoke(c, ...a);
+const on = c => cb => ipcRenderer.on(c, (_e, m) => cb(m));
 contextBridge.exposeInMainWorld('api', {
-  pickDir: () => ipcRenderer.invoke('pick-dir'),
-  pickCookies: () => ipcRenderer.invoke('pick-cookies'),
-  openDir: p => ipcRenderer.invoke('open-dir', p),
-  openExternal: u => ipcRenderer.invoke('open-external', u),
-  version: () => ipcRenderer.invoke('version'),
-  preview: o => ipcRenderer.invoke('preview', o),
-  cancelPreview: () => ipcRenderer.invoke('cancel-preview'),
-  start: o => ipcRenderer.invoke('start', o),
-  cancel: () => ipcRenderer.invoke('cancel'),
-  onLog: cb => ipcRenderer.on('log', (_e, m) => cb(m)),
-  onDone: cb => ipcRenderer.on('done', (_e, m) => cb(m))
+  state: inv('state'), pickDir: inv('pick-dir'), setInterval: inv('set-interval'),
+  openPath: inv('open-path'), openFolder: inv('open-folder'),
+  login: inv('login'), logins: inv('logins'), logout: inv('logout'),
+  addSub: inv('add-sub'), removeSub: inv('remove-sub'), media: inv('media'),
+  sync: inv('sync'), cancel: inv('cancel'), preview: inv('preview'),
+  onLog: on('log'), onSubs: on('subs'), onState: on('state'), onLogin: on('login-done')
 });
