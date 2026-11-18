@@ -65,4 +65,4 @@ Repo **Settings → Pages → Source: GitHub Actions**. The **Pages** workflow d
 Only download content you own or have permission to save. Respect creators, site terms and your local laws. The authors are not responsible for misuse.
 
 ## 📄 License
-MIT © YOUR_NAME
+MIT © Shinjuu

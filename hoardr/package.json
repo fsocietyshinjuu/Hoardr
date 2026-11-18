@@ -1,9 +1,9 @@
 {
-  "name": "hoardr",
-  "version": "1.1.0",
+  "name": "Hoardr",
+  "version": "1.0.0",
   "description": "Desktop app to download public media from social profiles, powered by gallery-dl and yt-dlp.",
   "main": "src/main.js",
-  "author": "Shinjuu",
+  "author": "fsocietyshinjuu",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -14,7 +14,7 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.example.hoardr",
+    "appId": "com.fsocietyshinjuu.Hoardr",
     "productName": "Hoardr",
     "files": ["src/**/*", "package.json"],
     "extraResources": [{ "from": "bin", "to": "bin", "filter": ["**/*"] }],
