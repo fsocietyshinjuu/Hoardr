@@ -44,12 +44,13 @@
     <button data-n="YouTube" data-l="YouTube" data-u="https://www.youtube.com">YouTube</button>
   </div>
   <label>Other site</label><div class="pick"><input id="otherU" placeholder="https://…"><button id="otherGo" class="ghost">Open</button></div>
-  <details class="alt"><summary>Can't sign in? Use cookies instead</summary>
-    <p class="mut">X often blocks sign-in inside apps. In your normal browser log in to x.com, press F12 → Application → Cookies → https://x.com, then copy these two values:</p>
+  <details class="alt"><summary>Can't sign in? Use your browser's session instead</summary>
+    <p class="mut">Works even when X says "We've temporarily limited your login", because you don't log in again. Stay signed in to x.com in your normal browser, then:</p>
+    <ol class="mut steps2"><li>Open x.com and press <b>F12</b> (Developer Tools).</li><li>Open the <b>Application</b> tab (in Brave/Chrome/Edge) or <b>Storage</b> tab (Firefox).</li><li>Go to <b>Cookies → https://x.com</b>.</li><li>Double-click the <b>Value</b> of <code>auth_token</code> and copy it. Do the same for <code>ct0</code>.</li><li>Paste both below and click Save.</li></ol>
     <label>auth_token</label><input id="xAuth" placeholder="auth_token value" autocomplete="off">
     <label>ct0</label><input id="xCt0" placeholder="ct0 value (optional)" autocomplete="off">
     <div class="end"><button class="ghost" id="xSave">Save X login</button></div>
-    <p class="mut">For any other site, import a cookies.txt file exported from your browser:</p>
+    <p class="mut">These values act like a password. Never share them. For any other site, import a cookies.txt file exported from your browser:</p>
     <button class="ghost" id="impCk">Import cookies.txt…</button>
   </details>
   <p class="mut" id="who"></p><div class="end"><button class="ghost" id="loginClose">Close</button></div></dialog>

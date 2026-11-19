@@ -1,13 +1,12 @@
-## Hoardr 1.3.0
+## Hoardr 1.3.1
 
-### What's new
-- 🎛️ **Photos, videos or both**: pick what to download for each profile when you add it, and change it any time from the profile header.
-- 🗂️ **Gallery views**: thumbnails or a detailed list (type, size, date, show in folder), with an All / Photos / Videos filter. A **✕ Close** button closes the open profile.
-- ⚡ **Auto-start**: a profile starts downloading the moment you add it. No need to press Check.
-- ⏹️ Per-profile **Stop** button and a clear **Queued** state.
+### Changed
+- **X (Twitter) sign-in now guides you to the reliable method.** X blocks and rate-limits sign-in inside apps ("We've temporarily limited your login"). Clicking X in **🔑 Log in** now recommends using the session you already have in your browser, with step-by-step instructions for copying `auth_token` and `ct0`.
 
-### Fixed
-- **Only the first profile could be checked.** Other and newly added profiles waited behind one slow job and never started. Syncs now run in parallel (up to 4 at once, 2 per site), and a failed job can no longer block the queue.
+### Highlights from 1.3.0
+- Photos, videos or both, per profile
+- Thumbnail or list gallery with filter and Close button
+- Auto-start downloads and parallel syncing
 
 ### Updating
 Installed from the **Setup** `.exe` or the **AppImage**? Hoardr offers this update by itself. Other builds: download below.

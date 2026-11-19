@@ -201,6 +201,10 @@ async function showWho() {
 $('login').onclick = () => { $('dLogin').showModal(); showWho(); };
 $('loginClose').onclick = () => $('dLogin').close();
 async function doLogin(b, force) {
+  if (b.dataset.n === 'X' && !force) {   // X rate-limits and blocks sign-in inside apps, so steer to the cookie method first
+    $('dLogin').querySelector('details.alt').open = true;
+    if (confirm('X often blocks or rate-limits sign-in inside apps ("We have temporarily limited your login").\n\nOK: use the cookie method below (recommended, works with the session already open in your browser).\nCancel: try signing in inside Hoardr anyway.')) return;
+  }
   const r = await api.login({ url: b.dataset.u, site: b.dataset.n, force });
   if (!r.ok) return line(r.error, 'err');
   if (r.already && confirm(`You are already signed in to ${b.dataset.l}.\nSign in again? This replaces the current session.`)) doLogin(b, true);

@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](https://semver.org).
 
+## [1.3.1] - 2026-11-19
+### Changed
+- **X (Twitter) sign-in**: clicking X now recommends the browser-session method first, because X rate-limits and blocks sign-in inside apps ("We've temporarily limited your login"). The cookie panel has step-by-step instructions for finding `auth_token` and `ct0`.
+
 ## [1.3.0] - 2026-11-19
 ### Added
 - **Download type** per profile: photos & videos, photos only, or videos only. Chosen when adding, changeable from the profile header.
