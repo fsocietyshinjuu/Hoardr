@@ -1,6 +1,10 @@
 const $ = id => document.getElementById(id);
 let subs = [], cur = null, lastTotal = -1, hideT, rT;
-let running = new Set(), prog = {}, previewing = false, pvCount = 0;
+let running = new Set(), prog = {}, previewing = false, pvCount = 0, queued = new Set();
+let view = localStorage.getItem('hv') || 'grid', filt = localStorage.getItem('hf') || 'all', gItems = [], gTotal = 0;
+const WELCOME = $('empty').textContent;
+const syncStop = () => { $('stop').hidden = !(running.size || previewing || queued.size); };
+const fmtSize = b => b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
 
 function line(text, cls = '') {
   const d = document.createElement('div'); d.className = cls; d.textContent = text;
@@ -34,8 +38,8 @@ function renderSubs() {
     else av.textContent = (s.name || '?')[0].toUpperCase();
     d.querySelector('b').textContent = s.title || s.name;
     const p = prog[s.id];
-    d.querySelector('i').textContent = running.has(s.id) ? `Syncing… ${p ? p.downloaded : 0} new` : `${s.host} · ${s.count} files · ${ago(s.last)}`;
-    d.querySelector('.dot').classList.toggle('run', running.has(s.id));
+    d.querySelector('i').textContent = running.has(s.id) ? `Syncing… ${p ? p.downloaded : 0} new` : queued.has(s.id) ? 'Queued, waiting…' : `${s.host} · ${s.count} files · ${ago(s.last)}${s.types === 'photos' ? ' · photos' : s.types === 'videos' ? ' · videos' : ''}`;
+    d.querySelector('.dot').classList.toggle('run', running.has(s.id) || queued.has(s.id));
     d.onclick = () => select(s.id);
     box.appendChild(d);
   }
@@ -56,7 +60,7 @@ function addThumb(it, kind) {
   $('grid').appendChild(d);
 }
 function thumbs(items, kind) {
-  $('grid').textContent = ''; $('empty').hidden = items.length > 0;
+  $('grid').className = ''; $('grid').textContent = ''; $('empty').hidden = items.length > 0;
   items.forEach(it => addThumb(it, kind));
 }
 function card(c) {
@@ -70,23 +74,50 @@ function card(c) {
 const subCard = s => card({ image: s.avUrl, title: s.title || s.name, handle: '@' + s.name, desc: s.bio });
 function header(title, sub, own) {
   $('title').textContent = title; $('sub').textContent = sub || '';
-  for (const id of ['check', 'folder', 'remove']) $(id).hidden = !own;
-  $('stop').hidden = !(running.size || previewing);
+  for (const id of ['check', 'folder', 'remove', 'closeG', 'types', 'gtools']) $(id).hidden = !own;
+  syncStop();
 }
 
+function addRow(it) {
+  const d = document.createElement('div'); d.className = 'r2'; d.title = it.label;
+  const t = document.createElement('div'); t.className = 'rt';
+  if (it.video) { const v = document.createElement('video'); v.src = it.src + '#t=0.1'; v.muted = true; v.preload = 'metadata'; v.onerror = () => { v.remove(); t.append('🎬'); }; t.appendChild(v); }
+  else { const im = document.createElement('img'); im.loading = 'lazy'; im.src = it.src; im.onerror = () => { im.remove(); t.append('🖼️'); }; t.appendChild(im); }
+  const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = it.label;
+  const tag = document.createElement('div'); tag.className = 'tag' + (it.video ? ' v' : ''); tag.textContent = it.video ? 'Video' : 'Photo';
+  const sz = document.createElement('div'); sz.className = 'mt'; sz.textContent = fmtSize(it.size || 0);
+  const dt = document.createElement('div'); dt.className = 'mt'; dt.textContent = new Date(it.t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  const fb = document.createElement('button'); fb.className = 'ghost'; fb.textContent = '📂'; fb.title = 'Show in folder';
+  fb.onclick = e => { e.stopPropagation(); api.showFile(it.path); };
+  d.append(t, nm, tag, sz, dt, fb); d.onclick = () => api.openPath(it.path);
+  $('grid').appendChild(d);
+}
+function paintToggles() {
+  document.querySelectorAll('#fseg button').forEach(b => b.classList.toggle('on', b.dataset.f === filt));
+  document.querySelectorAll('#vseg button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+}
+function renderGallery() {
+  const items = gItems.filter(i => filt === 'all' || (filt === 'videos') === !!i.video);
+  const g = $('grid'); g.textContent = ''; g.className = view === 'list' ? 'list' : '';
+  items.forEach(i => view === 'list' ? addRow(i) : addThumb(i, 'file'));
+  $('empty').hidden = items.length > 0;
+  $('empty').textContent = running.has(cur) ? 'Downloading… files appear here as they arrive.' : filt !== 'all' && gItems.length ? `No ${filt} in this profile yet.` : 'No files yet. They will appear here once downloaded.';
+  $('gcount').textContent = `${items.length} shown` + (gTotal > gItems.length ? ` · newest ${gItems.length} of ${gTotal}` : '');
+  paintToggles();
+}
 async function refreshGallery(force) {
   if (!cur) return;
   const m = await api.media(cur);
   if (!force && m.total === lastTotal) return;
-  lastTotal = m.total; thumbs(m.items, 'file');
-  $('empty').textContent = running.has(cur) ? 'Downloading… files appear here as they arrive.' : 'No files yet. Press Check now.';
-  if (m.total > 300) $('sub').textContent = `showing newest 300 of ${m.total}`;
+  lastTotal = m.total; gItems = m.items; gTotal = m.total; renderGallery();
 }
+document.querySelectorAll('#fseg button').forEach(b => b.onclick = () => { filt = b.dataset.f; localStorage.setItem('hf', filt); renderGallery(); });
+document.querySelectorAll('#vseg button').forEach(b => b.onclick = () => { view = b.dataset.v; localStorage.setItem('hv', view); renderGallery(); });
 async function select(id) {
   cur = id; renderSubs();
   const s = subs.find(x => x.id === id); if (!s) return;
-  header(s.title || s.name, s.url, true); subCard(s);
-  if (running.has(id)) paintProg(prog[id] || { downloaded: 0, skipped: 0 }); else if (!previewing) hideProg();
+  header(s.title || s.name, s.url, true); subCard(s); $('types').value = s.types || 'both';
+  if (running.has(id)) paintProg(prog[id] || { downloaded: 0, skipped: 0 }); else if (queued.has(id)) showProg('Queued, waiting for a free slot…', null); else if (!previewing) hideProg();
   await refreshGallery(true);
 }
 setInterval(() => { if (cur && running.has(cur)) refreshGallery(false); }, 3000);
@@ -122,7 +153,7 @@ $('prev').onclick = async () => {
   header('Previewing…', t.url, false); thumbs([], 'preview'); $('empty').hidden = true;
   showProg('Looking up profile… this can take a minute on Instagram or X', null);
   const r = await api.preview({ url: t.url });
-  previewing = false; hideProg(); $('stop').hidden = !running.size;
+  previewing = false; hideProg(); syncStop();
   if (r.cancelled) return header('Preview cancelled', '', false);
   if (!r.ok) {
     header('Preview failed', '', false); $('empty').textContent = r.error; $('empty').hidden = pvCount > 0;
@@ -143,13 +174,18 @@ $('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('prev').cli
 $('add').onclick = async () => {
   const t = target(); if (!t) return;
   if (t.error) return line(t.error, 'err');
-  const r = await api.addSub({ url: t.url, name: t.name });
+  const r = await api.addSub({ url: t.url, name: t.name, types: $('dtype').value });
   if (!r.ok) return line(r.error, 'err');
   $('url').value = ''; subs = (await api.state()).subs; select(r.sub.id);
 };
 $('check').onclick = () => api.sync(cur);
 $('folder').onclick = () => api.openFolder(cur);
-$('stop').onclick = () => api.cancel();
+$('stop').onclick = () => previewing ? api.cancelPreview() : api.cancel(cur ? { id: cur } : {});
+$('types').onchange = e => api.setTypes({ id: cur, types: e.target.value });
+$('closeG').onclick = () => {
+  cur = null; lastTotal = -1; gItems = []; renderSubs(); header('Welcome', '', false); thumbs([], 'x'); card(null);
+  $('empty').textContent = WELCOME; $('empty').hidden = false; if (!previewing) hideProg();
+};
 $('remove').onclick = async () => {
   if (!confirm('Remove this subscription? Downloaded files stay on disk.')) return;
   await api.removeSub(cur); cur = null; header('Welcome', '', false); thumbs([], 'x'); hideProg(); card(null); $('empty').textContent = 'Subscription removed.';
@@ -187,11 +223,12 @@ $('logout').onclick = async () => { await api.logout(); line('Signed out of all 
 
 // ---- events ----
 api.onLog(m => line(m.text, m.type));
-api.onSubs(s => { subs = s; renderSubs(); const c = subs.find(x => x.id === cur); if (c) subCard(c); });
+api.onSubs(s => { subs = s; renderSubs(); const c = subs.find(x => x.id === cur); if (c) { subCard(c); $('types').value = c.types || 'both'; } });
+api.onQueue(q => { queued = new Set(q); renderSubs(); syncStop(); if (cur && queued.has(cur) && !running.has(cur)) showProg('Queued, waiting for a free slot…', null); });
 api.onProgress(p => { prog[p.id] = p; if (p.id === cur && running.has(p.id)) paintProg(p); soon(); });
 api.onState(m => {
   m.running ? running.add(m.id) : running.delete(m.id);
-  renderSubs(); $('stop').hidden = !(running.size || previewing);
+  renderSubs(); syncStop();
   if (m.id !== cur) return;
   if (m.running) paintProg(prog[m.id] || { downloaded: 0, skipped: 0 });
   else {

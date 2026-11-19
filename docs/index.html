@@ -19,6 +19,11 @@ h2{text-align:center;font-size:28px;margin:60px 0 10px}.lead{text-align:center;c
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}
 .c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;transition:transform .2s,border-color .2s}.c:hover{transform:translateY(-4px);border-color:var(--acc)}
 .c h3{margin:0 0 6px;font-size:17px}.c p{margin:0;color:var(--mut);font-size:14px}
+.shots{max-width:960px;margin:34px auto 0}.tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.tabs button{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 18px;font:inherit;font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.shot{display:none;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(124,92,255,.22)}.shot.on{display:block}
+.cap{text-align:center;color:var(--mut);font-size:12px;margin-top:10px}
 .new{display:inline-block;background:var(--acc);color:#fff;border-radius:6px;font-size:10px;padding:1px 7px;margin-left:6px;vertical-align:2px;font-weight:700}
 .steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .steps .c:before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;margin-bottom:10px}
@@ -41,12 +46,21 @@ footer{text-align:center;color:var(--mut);padding:30px 0 40px;font-size:14px}
 <a class="btn g" href="#features">See what's inside</a>
 <div class="sub" id="ver">Free and open source · Windows, macOS, Linux</div></section>
 
+<section class="shots" id="preview">
+<div class="tabs"><button class="on" data-t="s1">▦ Thumbnails</button><button data-t="s2">☰ List</button></div>
+<img class="shot on" id="s1" src="preview.svg" alt="Hoardr gallery in thumbnail view">
+<img class="shot" id="s2" src="preview-list.svg" alt="Hoardr gallery in list view">
+<div class="cap">Illustration of the app. Your window will look very similar.</div></section>
+
 <h2 id="features">Everything in one place</h2>
 <p class="lead">Built around the way you actually use it: subscribe, forget, browse.</p>
 <section class="grid">
 <div class="c"><h3>🔑 In-app login</h3><p>Sign in inside Hoardr. It closes itself the moment you're logged in, and shows a ✓ for every site you're signed in to. No cookie exporting.</p></div>
 <div class="c"><h3>📚 Subscriptions</h3><p>Add a profile once. Each check downloads only what's new, so nothing is fetched twice.</p></div>
 <div class="c"><h3>📊 Live progress <span class="new">NEW</span></h3><p>A progress bar, new-file counter and current filename, with the gallery filling up as files arrive.</p></div>
+<div class="c"><h3>🎛️ Photos, videos or both <span class="new">NEW</span></h3><p>Choose what to download for every profile, and change it any time from the profile's header.</p></div>
+<div class="c"><h3>🗂️ Thumbnails or list <span class="new">NEW</span></h3><p>Browse each gallery as a thumbnail grid or a detailed list with type, size and date. Filter by photos or videos, and close it with one click.</p></div>
+<div class="c"><h3>⚡ Auto-start, parallel sync <span class="new">NEW</span></h3><p>New profiles start downloading the moment you add them. Several profiles sync at once, with a clear "Queued" state and a Stop button for each.</p></div>
 <div class="c"><h3>👤 Profile cards <span class="new">NEW</span></h3><p>See the profile picture, name and bio before you subscribe, and in the sidebar after.</p></div>
 <div class="c"><h3>⌨️ Add by username <span class="new">NEW</span></h3><p>Pick the site from a dropdown and type just the username, or paste the full profile link.</p></div>
 <div class="c"><h3>🔔 Runs in the tray <span class="new">NEW</span></h3><p>Closing the window keeps Hoardr syncing in the background. Click the tray icon to bring it back.</p></div>
@@ -77,6 +91,12 @@ footer{text-align:center;color:var(--mut);padding:30px 0 40px;font-size:14px}
 <h2 id="changelog">Changelog</h2>
 <p class="lead">What's new in each release. <a href="https://github.com/fsocietyshinjuu/Hoardr/releases">All releases ↗</a></p>
 <div class="log">
+<div class="rel"><h3>v1.3.0<small>2026-11-19</small></h3><ul>
+<li><b>Download type</b>: photos only, videos only or both, per profile (choose it when adding; change it later from the profile header).</li>
+<li><b>Gallery views</b>: thumbnails or list (with type, size and date), All / Photos / Videos filter, and a Close button for the open profile.</li>
+<li><b>Auto-start</b>: a profile starts downloading as soon as it is added.</li>
+<li><b>Fixed</b>: only the first profile could be checked. Syncs now run in parallel (up to 4, max 2 per site), waiting profiles show as Queued, and each profile has its own Stop button.</li>
+<li>App preview and updated feature list on this page and in the README.</li></ul></div>
 <div class="rel"><h3>v1.2.0<small>2026-11-19</small></h3><ul>
 <li><b>Add by username</b>: choose the site from a dropdown and paste a username, or paste a full link (the site is detected automatically).</li>
 <li><b>Profile cards</b>: profile picture, name and bio in the preview and in the sidebar.</li>
@@ -101,6 +121,9 @@ footer{text-align:center;color:var(--mut);padding:30px 0 40px;font-size:14px}
 <script>
 var p=navigator.platform.toLowerCase(),os=p.includes('win')?'win':p.includes('mac')?'mac':'linux';
 var names={win:'Windows',mac:'macOS',linux:'Linux'};
+document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('.tabs button,.shot').forEach(function(e){e.classList.remove('on')});
+  b.classList.add('on');document.getElementById(b.dataset.t).classList.add('on');}});
 document.getElementById('dl').textContent='Download for '+names[os];
 document.getElementById('d-'+os).classList.add('me');
 fetch('https://api.github.com/repos/fsocietyshinjuu/Hoardr/releases/latest').then(function(r){return r.json()}).then(function(r){

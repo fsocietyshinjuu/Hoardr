@@ -15,8 +15,19 @@ Powered by [gallery-dl](https://github.com/mikf/gallery-dl) and [yt-dlp](https:/
 
 </div>
 
+## 🖼️ App preview
+
+| Thumbnails | List |
+|---|---|
+| ![Thumbnail view](docs/preview.svg) | ![List view](docs/preview-list.svg) |
+
+*Illustrations of the interface. Replace them with real screenshots (`docs/preview.png`) whenever you like.*
+
 ## ✨ Features
 - 🔑 **In-app login**: sign in to Instagram, X, Facebook, Threads, TikTok and more inside Hoardr
+- 🎛️ **Photos, videos or both**: choose per profile, change any time
+- 🗂️ **Thumbnails or list** gallery with All / Photos / Videos filter and a Close button
+- ⚡ **Auto-start**: a new profile downloads immediately; several profiles sync in parallel
 - ⌨️ **Add by username**: pick the site, type a username or paste a link
 - 👤 **Profile cards** with picture, name and bio
 - 🔔 **Tray mode**: closing the window keeps syncing in the background

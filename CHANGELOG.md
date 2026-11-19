@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](https://semver.org).
 
+## [1.3.0] - 2026-11-19
+### Added
+- **Download type** per profile: photos & videos, photos only, or videos only. Chosen when adding, changeable from the profile header.
+- **Gallery views**: thumbnail grid or list (type, size, date, show-in-folder), All / Photos / Videos filter, remembered between sessions.
+- **Close button** to close the open profile's gallery.
+- **Auto-start**: adding a profile downloads it immediately.
+- Per-profile **Stop** button and a visible **Queued** state.
+- App preview illustrations on the landing page and in the README.
+### Fixed
+- Only the first profile could be checked; others and newly added profiles never started. Syncs now run in parallel (up to 4 at once, 2 per site) instead of one slow job blocking the rest, and a failed job can no longer jam the queue.
+
 ## [1.2.0] - 2026-11-19
 ### Added
 - **Add by username**: site dropdown plus username-only or full-link input; pasting a link selects the site automatically.

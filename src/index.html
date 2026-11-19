@@ -8,6 +8,7 @@
   <div class="add">
     <select id="site"><option value="instagram">Instagram</option><option value="x">X (Twitter)</option><option value="facebook">Facebook</option><option value="threads">Threads</option><option value="tiktok">TikTok</option><option value="reddit">Reddit</option><option value="pinterest">Pinterest</option><option value="youtube">YouTube</option><option value="other">Other (paste link)</option></select>
     <input id="url" placeholder="Username or profile link…">
+    <select id="dtype"><option value="both">Download: Photos &amp; videos</option><option value="photos">Download: Photos only</option><option value="videos">Download: Videos only</option></select>
     <div class="r"><button id="prev" class="ghost">Preview</button><button id="add">Add</button></div>
   </div>
   <div id="subs"></div>
@@ -16,9 +17,14 @@
 <section id="main">
   <div id="upd" hidden><span id="updText"></span><button id="updBtn"></button></div>
   <div class="head"><div><b id="title">Welcome</b><small id="sub"></small></div>
-    <div class="btns"><button id="check" class="ghost" hidden>Check now</button><button id="folder" class="ghost" hidden>Open folder</button><button id="remove" class="ghost" hidden>Remove</button><button id="stop" class="ghost" hidden>Stop</button></div></div>
+    <div class="btns"><select id="types" hidden title="What to download for this profile"><option value="both">Photos &amp; videos</option><option value="photos">Photos only</option><option value="videos">Videos only</option></select><button id="check" class="ghost" hidden>Check now</button><button id="folder" class="ghost" hidden>Open folder</button><button id="remove" class="ghost" hidden>Remove</button><button id="closeG" class="ghost" hidden>✕ Close</button><button id="stop" class="ghost" hidden>Stop</button></div></div>
   <div id="pcard" hidden><img id="pav" alt=""><div><b id="pname"></b> <small id="phandle"></small><p id="pbio"></p></div></div>
   <div id="prog" hidden><div class="bar"><i id="barfill"></i></div><div id="progText"></div></div>
+  <div id="gtools" hidden>
+    <div class="seg" id="fseg"><button data-f="all">All</button><button data-f="photos">Photos</button><button data-f="videos">Videos</button></div>
+    <span id="gcount"></span>
+    <div class="seg" id="vseg"><button data-v="grid">▦ Thumbnails</button><button data-v="list">☰ List</button></div>
+  </div>
   <div id="grid"></div>
   <div id="empty">Log in to a site with 🔑, paste a profile link, preview it, then press <b>Add</b>. Hoardr keeps it synced.</div>
   <details class="logbox"><summary>Activity log</summary><div id="log"></div></details>

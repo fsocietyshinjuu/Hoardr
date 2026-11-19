@@ -55,7 +55,7 @@ function media(folder) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) { if (depth < 2) walk(p, depth + 1); continue; }
       const ext = path.extname(e.name).slice(1).toLowerCase();
-      if (IMG.includes(ext) || VID.includes(ext)) out.push({ p, t: fs.statSync(p).mtimeMs, v: VID.includes(ext) });
+      if (IMG.includes(ext) || VID.includes(ext)) { const st = fs.statSync(p); out.push({ p, t: st.mtimeMs, size: st.size, v: VID.includes(ext) }); }
     }
   })(folder, 0);
   return out.sort((a, b) => b.t - a.t);
@@ -277,50 +277,85 @@ async function enrich(s) {
 }
 
 // ---------- subscriptions ----------
-ipcMain.handle('add-sub', (_e, { url, name }) => {
+ipcMain.handle('add-sub', (_e, { url, name, types }) => {
   const p = plan(url);
   if (p.error) return { ok: false, error: p.error };
   if (subs.some(s => s.url === url)) return { ok: false, error: 'Already subscribed.' };
   const seg = new URL(url).pathname.split('/').filter(Boolean)[0] || p.host;
   const slug = clean(seg);
   const s = { id: Date.now().toString(36), url, name: name || seg.replace(/^@/, ''), host: p.host,
-    folder: path.join(settings.outDir, p.host, slug), last: null, count: 0 };
+    folder: path.join(settings.outDir, p.host, slug), last: null, count: 0, types: ['photos', 'videos'].includes(types) ? types : 'both' };
   subs.push(s); saveSubs(); enqueue(s.id); enrich(s);
   return { ok: true, sub: { ...s } };
 });
-ipcMain.handle('remove-sub', (_e, id) => { subs = subs.filter(s => s.id !== id); queue = queue.filter(q => q !== id); saveSubs(); return true; });
+ipcMain.handle('remove-sub', (_e, id) => { const jc = jobs.get(id); if (jc) jc.kill(); subs = subs.filter(s => s.id !== id); queue = queue.filter(q => q !== id); saveSubs(); return true; });
 ipcMain.handle('media', (_e, id) => {
   const s = subs.find(x => x.id === id); if (!s) return [];
   const all = media(s.folder);
-  return { total: all.length, items: all.slice(0, 300).map(m => ({ src: pathToFileURL(m.p).href, video: m.v, path: m.p, label: path.basename(m.p) })) };
+  return { total: all.length, items: all.slice(0, 300).map(m => ({ src: pathToFileURL(m.p).href, video: m.v, path: m.p, label: path.basename(m.p), size: m.size, t: m.t })) };
 });
 
-// ---------- sync queue ----------
-function enqueue(id) { if (id === 'all') subs.forEach(s => enqueue(s.id)); else if (!queue.includes(id)) queue.push(id); pump(); }
-ipcMain.handle('sync', (_e, id) => { enqueue(id); return true; });
-ipcMain.handle('cancel', () => { queue = []; if (child) child.kill(); if (pchild) pchild.kill(); return true; });
+// ---------- sync scheduler: profiles run in parallel (max 4 total, 2 per site) ----------
+const MAX_TOTAL = 4, MAX_PER_HOST = 2;
+const jobs = new Map(); // sub id -> child process (null while starting)
+const broadcastQueue = () => send('queue', queue.slice());
+const hostOfId = id => (subs.find(x => x.id === id) || {}).host;
 
-async function pump() {
-  if (running) return;
-  running = true;
-  while (queue.length) {
-    const s = subs.find(x => x.id === queue.shift());
-    if (s) await syncOne(s);
-  }
-  running = false;
+function enqueue(id) {
+  if (id === 'all') { subs.forEach(x => enqueue(x.id)); return; }
+  if (!jobs.has(id) && !queue.includes(id) && subs.some(x => x.id === id)) queue.push(id);
+  pump();
 }
+function pump() {
+  queue = queue.filter(id => subs.some(x => x.id === id));
+  while (queue.length && jobs.size < MAX_TOTAL) {
+    const busy = h => [...jobs.keys()].filter(j => hostOfId(j) === h).length;
+    const i = queue.findIndex(id => busy(hostOfId(id)) < MAX_PER_HOST);
+    if (i < 0) break;
+    const id = queue.splice(i, 1)[0], sub = subs.find(x => x.id === id);
+    jobs.set(id, null);
+    syncOne(sub)
+      .catch(e => { log(id, 'err', 'Sync failed: ' + (e && e.message || e)); send('state', { id, running: false }); })
+      .finally(() => { jobs.delete(id); pump(); });
+  }
+  broadcastQueue();
+}
+ipcMain.handle('sync', (_e, id) => { enqueue(id); return true; });
+ipcMain.handle('cancel', (_e, o) => {
+  const id = o && o.id;
+  if (id) { queue = queue.filter(x => x !== id); const c = jobs.get(id); if (c) c.kill(); }
+  else { queue = []; jobs.forEach(c => c && c.kill()); }
+  broadcastQueue(); return true;
+});
+ipcMain.handle('cancel-preview', () => { if (pchild) pchild.kill(); return true; });
+ipcMain.handle('set-types', (_e, { id, types }) => {
+  const x = subs.find(y => y.id === id);
+  if (x && ['both', 'photos', 'videos'].includes(types)) { x.types = types; saveSubs(); }
+  return true;
+});
+ipcMain.handle('show-file', (_e, p) => { shell.showItemInFolder(p); return true; });
 
 const splitter = cb => { let b = ''; return d => { b += d; const ls = b.split(/\r?\n/); b = ls.pop(); ls.filter(Boolean).forEach(cb); }; };
+const py = a => '(' + a.map(x => `'${x}'`).join(',') + ',)';
 
 async function syncOne(s) {
   const p = plan(s.url);
   if (p.error) return log(s.id, 'err', p.error);
+  const types = s.types || 'both';
   fs.mkdirSync(s.folder, { recursive: true });
   const arch = path.join(settings.outDir, '.hoardr'); fs.mkdirSync(arch, { recursive: true });
   const ck = await exportCookies();
-  const args = p.ytdlp
-    ? ['-P', s.folder, '-o', '%(title).150B [%(id)s].%(ext)s', '--download-archive', path.join(arch, s.id + '.txt'), '--no-overwrites', '--newline', '--ignore-errors', '--cookies', ck, s.url]
-    : ['-D', s.folder, '--download-archive', path.join(arch, s.id + '.sqlite3'), '--cookies', ck, s.url];
+  let args;
+  if (p.ytdlp) {
+    args = ['-P', s.folder, '-o', '%(title).150B [%(id)s].%(ext)s', '--no-overwrites', '--newline', '--ignore-errors'];
+    if (types === 'photos') args.push('--skip-download', '--write-thumbnail');
+    else args.push('--download-archive', path.join(arch, s.id + '.txt'));
+  } else {
+    args = ['-D', s.folder, '--download-archive', path.join(arch, s.id + '.sqlite3')];
+    if (types === 'photos') args.push('--filter', `(locals().get('extension') or '') in ${py(IMG)}`);
+    if (types === 'videos') args.push('--filter', `(locals().get('extension') or 'mp4') in ${py(VID)}`);
+  }
+  args.push('--cookies', ck, s.url);
 
   const before = media(s.folder).length;
   const st = { id: s.id, downloaded: 0, skipped: 0, current: '', pct: null, queued: 0, gained: 0 };
@@ -338,16 +373,18 @@ async function syncOne(s) {
   };
 
   send('state', { id: s.id, running: true });
-  log(s.id, 'info', `Checking ${s.name} (${path.basename(p.cmd)})`);
+  const label = { both: 'photos & videos', photos: 'photos only', videos: 'videos only' }[types];
+  log(s.id, 'info', `Checking ${s.name} (${path.basename(p.cmd)}, ${label})`);
   emit(true);
   await new Promise(res => {
-    try { child = spawn(p.cmd, args, { windowsHide: true }); } catch (e) { log(s.id, 'err', String(e)); return res(); }
-    child.stdout.on('data', splitter(l => { log(s.id, 'out', l); onLine(l); }));
-    child.stderr.on('data', splitter(l => log(s.id, 'err', l)));
-    child.on('error', e => { log(s.id, 'err', `Could not launch ${path.basename(p.cmd)}: ${e.message}`); res(); });
-    child.on('close', code => {
-      child = null;
-      if (code !== 0) log(s.id, 'err', `Finished with errors (code ${code}). If the site needs login, use 🔑 Log in to a site.`);
+    let ch; try { ch = spawn(p.cmd, args, { windowsHide: true }); } catch (e) { log(s.id, 'err', String(e)); return res(); }
+    jobs.set(s.id, ch);
+    ch.stdout.on('data', splitter(l => { log(s.id, 'out', l); onLine(l); }));
+    ch.stderr.on('data', splitter(l => log(s.id, 'err', l)));
+    ch.on('error', e => { log(s.id, 'err', `Could not launch ${path.basename(p.cmd)}: ${e.message}`); res(); });
+    ch.on('close', code => {
+      if (ch.killed) log(s.id, 'info', 'Stopped.');
+      else if (code !== 0) log(s.id, 'err', `Finished with errors (code ${code}). If the site needs login, use 🔑 Log in to a site.`);
       res();
     });
   });
@@ -439,7 +476,7 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', showWin);
   app.on('activate', showWin);
-  app.on('before-quit', () => { quitting = true; });
+  app.on('before-quit', () => { quitting = true; jobs.forEach(c => c && c.kill()); });
   app.on('window-all-closed', () => { if (!trayOk) app.quit(); });
   app.whenReady().then(() => {
     app.setAppUserModelId('com.fsocietyshinjuu.hoardr');
